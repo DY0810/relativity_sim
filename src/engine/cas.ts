@@ -1,24 +1,37 @@
 import nerdamer from 'nerdamer';
 import 'nerdamer/Calculus';
-import { evaluate as mathEval } from 'mathjs';
+import { compile } from 'mathjs';
 
 export type Vector4 = [string, string, string, string];
 export type NumericVector4 = [number, number, number, number];
+
+// Global cache for compiled expressions to massively improve evaluation performance in rendering loops
+const expressionCache = new Map<string, any>();
+
+const getCompiledExpression = (expr: string) => {
+    if (!expr || expr.trim() === '') return { evaluate: () => 0 };
+    if (!expressionCache.has(expr)) {
+        try {
+            // Simplify with nerdamer first to standardize mathematical syntax
+            const standardized = nerdamer(substituteConstants(expr)).text();
+            expressionCache.set(expr, compile(standardized));
+        } catch (e) {
+            console.warn("Failed to compile expression:", expr, e);
+            expressionCache.set(expr, { evaluate: () => 0 });
+        }
+    }
+    return expressionCache.get(expr);
+};
 
 /**
  * Physical and mathematical constants.
  * In natural units: c = 1, but we keep it so users can write c explicitly.
  */
 export const CONSTANTS: Record<string, string> = {
-    // Speed of light (natural units)
     c: '1',
-    // Gravitational acceleration (m/s² in SI, but here as natural unit approximation)
     g: '9.80665',
-    // Reduced Planck constant (natural units)
     hbar: '1',
-    // Boltzmann constant (natural units)
     kb: '1',
-    // Golden ratio
     phi: '1.6180339887',
 };
 
@@ -32,7 +45,6 @@ const substituteConstants = (expr: string): string => {
     const sorted = Object.entries(CONSTANTS).sort((a, b) => b[0].length - a[0].length);
     for (const [name, value] of sorted) {
         // Use word boundary regex to avoid replacing inside function names
-        // e.g. "cosh" should not have "c" replaced
         const regex = new RegExp(`\\b${name}\\b`, 'g');
         result = result.replace(regex, `(${value})`);
     }
@@ -45,13 +57,10 @@ export interface ParticleState {
     color: string;
     mass: number;
     initialPosition: NumericVector4;
-    initialVelocity: NumericVector4; // Valid when acceleration is provided
-    // One of these inputs must be provided by user mathematically:
+    initialVelocity: NumericVector4;
     inputPosition?: Vector4;
     inputVelocity?: Vector4;
     inputAcceleration?: Vector4;
-
-    // Derived symbolic expressions mapped to proper time tau
     positionExpr: Vector4;
     velocityExpr: Vector4;
     accelerationExpr: Vector4;
@@ -86,8 +95,6 @@ export const integrateSymbolic = (expr: string, constant: number, variable: stri
     const integrated = nerdamer(`integrate(${expr}, ${variable})`).text();
     // Evaluate the integrated expression at tau = 0 to find the offset
     const evaluatedAtZero = nerdamer(integrated, { tau: '0' }).text();
-
-    // The result with constant will be: integrated_expr - integrated_value_at_0 + constant
     const adjustedExpr = nerdamer(`${integrated} - (${evaluatedAtZero}) + (${constant})`).text();
     return adjustedExpr;
 };
@@ -154,12 +161,12 @@ export const solveFromAcceleration = (A: Vector4, U0: NumericVector4, X0: Numeri
  */
 export const evaluateVectorAtTau = (V: Vector4, tau: number): NumericVector4 => {
     try {
-        const tauStr = tau.toString();
+        const scope = { tau };
         const res = [
-            Number(mathEval(nerdamer(substituteConstants(V[0]), { tau: tauStr }).text())),
-            Number(mathEval(nerdamer(substituteConstants(V[1]), { tau: tauStr }).text())),
-            Number(mathEval(nerdamer(substituteConstants(V[2]), { tau: tauStr }).text())),
-            Number(mathEval(nerdamer(substituteConstants(V[3]), { tau: tauStr }).text()))
+            Number(getCompiledExpression(V[0]).evaluate(scope)),
+            Number(getCompiledExpression(V[1]).evaluate(scope)),
+            Number(getCompiledExpression(V[2]).evaluate(scope)),
+            Number(getCompiledExpression(V[3]).evaluate(scope))
         ] as NumericVector4;
         if (res.some(Number.isNaN)) return [0, 0, 0, 0];
         return res;
