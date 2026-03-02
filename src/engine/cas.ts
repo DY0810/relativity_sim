@@ -8,7 +8,7 @@ export type NumericVector4 = [number, number, number, number];
 // Global cache for compiled expressions to massively improve evaluation performance in rendering loops
 const expressionCache = new Map<string, any>();
 
-const getCompiledExpression = (expr: string) => {
+export const getCompiledExpression = (expr: string) => {
     if (!expr || expr.trim() === '') return { evaluate: () => 0 };
     if (!expressionCache.has(expr)) {
         try {

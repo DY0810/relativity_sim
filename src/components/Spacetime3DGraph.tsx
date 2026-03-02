@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Plot from 'react-plotly.js';
 import { useSimulatorStore } from '../store/useSimulatorStore';
-import { evaluateVectorAtTau, findTauForLabTime, checkCausalityViolation, type NumericVector4 } from '../engine/cas';
+import { evaluateVectorAtTau, findTauForLabTime, checkCausalityViolation, getCompiledExpression, type NumericVector4 } from '../engine/cas';
 import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/physics';
 
 
@@ -119,9 +119,25 @@ export const Spacetime3DGraph: React.FC = () => {
             const t: number[] = [], x: number[] = [], y: number[] = [], z: number[] = [];
             const dynamicSteps = Math.max(500, tauRange * 10);
             const step = (tauRange * 2) / dynamicSteps;
+            // Pre-compile expressions to avoid massive overhead in the loop
+            const compT = getCompiledExpression(p.positionExpr[0]);
+            const compX = getCompiledExpression(p.positionExpr[1]);
+            const compY = getCompiledExpression(p.positionExpr[2]);
+            const compZ = getCompiledExpression(p.positionExpr[3]);
+
             for (let tau = -tauRange; tau <= tauRange; tau += step) {
-                const val = evaluateVectorAtTau(p.positionExpr, tau);
-                t.push(val[0]); x.push(val[1]); y.push(val[2]); z.push(val[3]);
+                const scope = { tau };
+                const vt = Number(compT.evaluate(scope));
+                const vx = Number(compX.evaluate(scope));
+                const vy = Number(compY.evaluate(scope));
+                const vz = Number(compZ.evaluate(scope));
+
+                // If the math blows up at extreme bounds, push 0 or skip
+                if (isNaN(vt) || isNaN(vx) || isNaN(vy) || isNaN(vz)) {
+                    t.push(0); x.push(0); y.push(0); z.push(0);
+                } else {
+                    t.push(vt); x.push(vx); y.push(vy); z.push(vz);
+                }
             }
 
             const tr = transformWorldlineCoordinates({ t, x, y, z }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
