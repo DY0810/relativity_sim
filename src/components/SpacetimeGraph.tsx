@@ -6,11 +6,16 @@ import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/
 
 
 export const SpacetimeGraph: React.FC = () => {
-    const { particles, activeReferenceFrameId, activeDimension, animationTime, tauRange } = useSimulatorStore();
+    const { particles, activeReferenceFrameId, activeDimension, animationTime, tauRange, loadedPresetId } = useSimulatorStore();
 
     const [viewRange, setViewRange] = useState(10);
     const renderRange = Math.max(tauRange, viewRange);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Reset viewRange when a new preset is loaded
+    React.useEffect(() => {
+        setViewRange(10);
+    }, [loadedPresetId]);
 
     // Determine active Momentarily Comoving Reference Frame (MCRF)
     // For INERTIAL frames: pure Lorentz boost, no translation. Grid tilts naturally.
@@ -168,7 +173,7 @@ export const SpacetimeGraph: React.FC = () => {
             if (horizontalAxis && transformed.t && !isNaN(horizontalAxis[0]) && !isNaN(transformed.t[0])) {
                 return {
                     type: 'scatter',
-                    mode: 'markers',
+                    mode: 'markers+text' as any,
                     x: [horizontalAxis[0]],
                     y: [transformed.t[0]],
                     marker: { color: '#ffffff', size: 10, line: { color: pColor, width: 3 } },
@@ -177,7 +182,7 @@ export const SpacetimeGraph: React.FC = () => {
                     textfont: { family: 'JetBrains Mono', color: pColor, size: 12 },
                     showlegend: false,
                     hoverinfo: 'skip'
-                } as Plotly.Data;
+                } as any;
             } else {
                 return { type: 'scatter', mode: 'markers', x: [], y: [], hoverinfo: 'skip' } as Plotly.Data;
             }
@@ -325,7 +330,7 @@ export const SpacetimeGraph: React.FC = () => {
             <Plot
                 data={[...gridData, ...lightConeData, ...plotData, ...markerData, timeLineData]}
                 layout={{
-                    uirevision: activeReferenceFrameId, // Reset zoom when frame changes
+                    uirevision: `${activeReferenceFrameId}-${loadedPresetId}`, // Reset zoom on frame/preset change
                     title: { text: `Minkowski Spacetime (t${axisPrefix}-${activeDimension}${axisPrefix} plane, c=1)` },
                     paper_bgcolor: 'transparent',
                     plot_bgcolor: 'transparent',

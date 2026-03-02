@@ -17,6 +17,7 @@ export interface SimulatorState {
     tauRange: number;
     timeMin: number;
     timeMax: number;
+    loadedPresetId: string | null;
 
     // Actions
     addParticle: () => void;
@@ -70,6 +71,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     tauRange: 50,
     timeMin: -10,
     timeMax: 10,
+    loadedPresetId: null,
 
     addParticle: () => set((state) => ({ particles: [...state.particles, createDefaultParticle()] })),
 
@@ -178,6 +180,11 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
                 accelerationExpr: ['0', '0', '0', '0']
             };
 
+            // Pass input type along to store
+            if (pt.inputType) {
+                (p as any).inputType = pt.inputType; // Fallback mapping as UI drives off of inputPosition existences directly
+            }
+
             if (pt.inputType === 'position') {
                 p.inputPosition = pt.input;
                 const sol = solveFromPosition(pt.input);
@@ -201,7 +208,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
             tauRange: preset.tauRange,
             viewMode: preset.viewMode,
             animationTime: preset.timeMin, // Reset playhead
-            activeReferenceFrameId: 'Lab' // Always reset to Lab frame for presets
+            activeReferenceFrameId: 'Lab', // Always reset to Lab frame for presets
+            loadedPresetId: presetId
         };
     }),
 

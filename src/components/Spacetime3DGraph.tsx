@@ -6,7 +6,7 @@ import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/
 
 
 export const Spacetime3DGraph: React.FC = () => {
-    const { particles, activeReferenceFrameId, animationTime, tauRange } = useSimulatorStore();
+    const { particles, activeReferenceFrameId, animationTime, tauRange, loadedPresetId } = useSimulatorStore();
 
     const [autoRotate, setAutoRotate] = useState(true);
     const angleRef = useRef(0);
@@ -447,10 +447,10 @@ export const Spacetime3DGraph: React.FC = () => {
         l.scene.xaxis.title.text = `x${prime}`;
         l.scene.yaxis.title.text = `y${prime}`;
         l.scene.zaxis.title.text = `t${prime}`;
-        // Only reset camera when frame changes (change scene.uirevision)
-        l.scene.uirevision = activeReferenceFrameId;
-        l.uirevision = activeReferenceFrameId;
-    }, [activeReferenceFrameId, prime]);
+        // Reset camera when frame changes OR a new preset is loaded
+        l.scene.uirevision = `${activeReferenceFrameId}-${loadedPresetId}`;
+        l.uirevision = `${activeReferenceFrameId}-${loadedPresetId}`;
+    }, [activeReferenceFrameId, prime, loadedPresetId]);
 
     return (
         <div className="w-full h-full relative p-4">

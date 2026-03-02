@@ -177,24 +177,47 @@ export const evaluateVectorAtTau = (V: Vector4, tau: number): NumericVector4 => 
 };
 
 export const findTauForLabTime = (positionExpr: Vector4, target_t: number): number => {
-    let low = -1000;
-    let high = 1000;
+    let low = -10000;
+    let high = 10000;
+
+    // First check boundaries to ensure we're searching the right domain
+    const t_low = evaluateVectorAtTau(positionExpr, low)[0];
+    const t_high = evaluateVectorAtTau(positionExpr, high)[0];
+
+    if (!Number.isNaN(t_low) && !Number.isNaN(t_high)) {
+        if (target_t < t_low) return low; // Clamped to lower bound
+        if (target_t > t_high) return high; // Clamped to upper bound
+    }
+
+    let closest_tau = 0;
+    let min_diff = Infinity;
 
     // Binary search since t(tau) is strictly monotonically increasing (dt/dtau = gamma >= 1)
     for (let iter = 0; iter < 100; iter++) {
         const mid = (low + high) / 2;
         const t_mid = evaluateVectorAtTau(positionExpr, mid)[0];
-        if (Number.isNaN(t_mid)) return 0; // Fallback to avoid propagating NaN
-        if (Math.abs(t_mid - target_t) < 1e-4) return mid;
+
+        if (Number.isNaN(t_mid)) {
+            // If we hit NaN (e.g. math domain error), shrink the search space towards 0
+            if (Math.abs(low) > Math.abs(high)) low = mid;
+            else high = mid;
+            continue;
+        }
+
+        const diff = Math.abs(t_mid - target_t);
+        if (diff < min_diff) {
+            min_diff = diff;
+            closest_tau = mid;
+        }
+
+        if (diff < 1e-4) return mid;
+
         if (t_mid < target_t) low = mid;
         else high = mid;
     }
-    const result_tau = (low + high) / 2;
-    const t_final = evaluateVectorAtTau(positionExpr, result_tau)[0];
-    // If the binary search failed to converge to the target global time (e.g., non-monotonic causality violating trajectory), 
-    // clamp it to REST frame origin to prevent the active graph view passing ±500k scale and disappearing.
-    if (Math.abs(t_final - target_t) > 100) return 0;
-    return result_tau;
+
+    // Return the closest tau we found if we didn't perfectly converge within 100 iters
+    return closest_tau;
 };
 
 /**
