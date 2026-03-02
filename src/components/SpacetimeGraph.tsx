@@ -97,8 +97,12 @@ export const SpacetimeGraph: React.FC = () => {
                 for (let i = 0; i < horizontalAxis.length; i++) {
                     if (typeof horizontalAxis[i] === 'number' && typeof transformed.t[i] === 'number'
                         && !isNaN(horizontalAxis[i]) && !isNaN(transformed.t[i])) {
-                        filteredH.push(horizontalAxis[i]);
-                        filteredV.push(transformed.t[i]);
+
+                        // Prevent WebGL precision loss/dropping by omitting ridiculously far points
+                        if (Math.abs(horizontalAxis[i]) < 20000 && Math.abs(transformed.t[i]) < 20000) {
+                            filteredH.push(horizontalAxis[i]);
+                            filteredV.push(transformed.t[i]);
+                        }
                     }
                 }
             }

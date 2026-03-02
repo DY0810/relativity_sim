@@ -130,7 +130,9 @@ export const Spacetime3DGraph: React.FC = () => {
             const fx: number[] = [], fy: number[] = [], fz: number[] = [], ft: number[] = [];
             for (let i = 0; i < tr.t.length; i++) {
                 if (isFinite(tr.x[i]) && isFinite(tr.y[i]) && isFinite(tr.z[i]) && isFinite(tr.t[i])) {
-                    fx.push(tr.x[i]); fy.push(tr.y[i]); fz.push(tr.z[i]); ft.push(tr.t[i]);
+                    if (Math.abs(tr.x[i]) < 20000 && Math.abs(tr.y[i]) < 20000 && Math.abs(tr.z[i]) < 20000 && Math.abs(tr.t[i]) < 20000) {
+                        fx.push(tr.x[i]); fy.push(tr.y[i]); fz.push(tr.z[i]); ft.push(tr.t[i]);
+                    }
                 }
             }
 
