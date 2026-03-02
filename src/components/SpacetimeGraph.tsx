@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import Plot from 'react-plotly.js';
 import { useSimulatorStore } from '../store/useSimulatorStore';
 import { evaluateVectorAtTau, findTauForLabTime, checkCausalityViolation, getCompiledExpression, type NumericVector4 } from '../engine/cas';
@@ -10,6 +10,7 @@ export const SpacetimeGraph: React.FC = () => {
 
     const [viewRange, setViewRange] = useState(10);
     const renderRange = Math.max(tauRange, viewRange);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Determine active Momentarily Comoving Reference Frame (MCRF)
     // For INERTIAL frames: pure Lorentz boost, no translation. Grid tilts naturally.
@@ -364,7 +365,10 @@ export const SpacetimeGraph: React.FC = () => {
 
                         // Only trigger re-render if zoom out expands view bounds significantly
                         if (maxView > viewRange * 1.2 || maxView < viewRange * 0.5) {
-                            setViewRange(Math.ceil(maxView * 1.2));
+                            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                            timeoutRef.current = setTimeout(() => {
+                                setViewRange(Math.ceil(maxView * 1.2));
+                            }, 150);
                         }
                     }
                 }}
