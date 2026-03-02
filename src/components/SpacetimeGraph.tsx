@@ -6,7 +6,7 @@ import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/
 
 
 export const SpacetimeGraph: React.FC = () => {
-    const { particles, activeReferenceFrameId, activeDimension, animationTime, tauRange, loadedPresetId } = useSimulatorStore();
+    const { particles, activeReferenceFrameId, activeDimension, animationTime, tauRange, loadedPresetId, showClocks } = useSimulatorStore();
 
     const [viewRange, setViewRange] = useState(10);
     const renderRange = Math.max(tauRange, viewRange);
@@ -173,13 +173,15 @@ export const SpacetimeGraph: React.FC = () => {
             if (horizontalAxis && transformed.t && !isNaN(horizontalAxis[0]) && !isNaN(transformed.t[0])) {
                 return {
                     type: 'scatter',
-                    mode: 'markers+text' as any,
+                    mode: showClocks ? 'markers+text' : 'markers',
                     x: [horizontalAxis[0]],
                     y: [transformed.t[0]],
                     marker: { color: '#ffffff', size: 10, line: { color: pColor, width: 3 } },
-                    text: [`<b>${p.name}</b><br>Lab t: ${animationTime.toFixed(1)}s<br>Proper τ: ${particle_tau.toFixed(1)}s`],
-                    textposition: 'top center',
-                    textfont: { family: 'JetBrains Mono', color: pColor, size: 12 },
+                    ...(showClocks && {
+                        text: [`<b>${p.name}</b><br>Lab t: ${animationTime.toFixed(1)}s<br>Proper τ: ${particle_tau.toFixed(1)}s`],
+                        textposition: 'top center',
+                        textfont: { family: 'JetBrains Mono', color: pColor, size: 12 }
+                    }),
                     showlegend: false,
                     hoverinfo: 'skip'
                 } as any;

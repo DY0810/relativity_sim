@@ -18,6 +18,7 @@ export interface SimulatorState {
     timeMin: number;
     timeMax: number;
     loadedPresetId: string | null;
+    showClocks: boolean;
 
     // Actions
     addParticle: () => void;
@@ -35,6 +36,7 @@ export interface SimulatorState {
     setTauRange: (range: number) => void;
     setTimeMin: (val: number) => void;
     setTimeMax: (val: number) => void;
+    setShowClocks: (val: boolean) => void;
 
     // Selectors
     getLabVelocityForParticle: (id: string) => [number, number, number];
@@ -72,6 +74,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     timeMin: -10,
     timeMax: 10,
     loadedPresetId: null,
+    showClocks: true,
 
     addParticle: () => set((state) => ({ particles: [...state.particles, createDefaultParticle()] })),
 
@@ -220,6 +223,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     setTauRange: (range) => set({ tauRange: Math.max(10, Math.min(1000, range)) }),
     setTimeMin: (val) => set((s) => ({ timeMin: Math.min(val, s.timeMax - 0.1) })),
     setTimeMax: (val) => set((s) => ({ timeMax: Math.max(val, s.timeMin + 0.1) })),
+    setShowClocks: (val) => set({ showClocks: val }),
 
     getLabVelocityForParticle: (id) => {
         const { particles, animationTime } = get();

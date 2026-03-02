@@ -6,7 +6,7 @@ import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/
 
 
 export const Spacetime3DGraph: React.FC = () => {
-    const { particles, activeReferenceFrameId, animationTime, tauRange, loadedPresetId } = useSimulatorStore();
+    const { particles, activeReferenceFrameId, animationTime, tauRange, loadedPresetId, showClocks } = useSimulatorStore();
 
     const [autoRotate, setAutoRotate] = useState(true);
     const angleRef = useRef(0);
@@ -191,10 +191,12 @@ export const Spacetime3DGraph: React.FC = () => {
                     y: [tr.y[0]],
                     z: [tr.t[0]],
                     marker: { color: '#ffffff', size: 5, line: { color: p.color, width: 2 }, symbol: 'circle' },
-                    text: [`<b>${p.name}</b><br>Lab t: ${animationTime.toFixed(1)}s<br>Proper τ: ${particle_tau.toFixed(1)}s`],
-                    textfont: { family: 'JetBrains Mono', color: p.color, size: 12 },
-                    textposition: 'top center',
-                    mode: 'markers+text' as any,
+                    mode: showClocks ? 'markers+text' : 'markers',
+                    ...(showClocks && {
+                        text: [`<b>${p.name}</b><br>Lab t: ${animationTime.toFixed(1)}s<br>Proper τ: ${particle_tau.toFixed(1)}s`],
+                        textposition: 'top center',
+                        textfont: { family: 'JetBrains Mono', color: p.color, size: 12 }
+                    }),
                     showlegend: false,
                     hoverinfo: 'skip' as any,
                 } as any);

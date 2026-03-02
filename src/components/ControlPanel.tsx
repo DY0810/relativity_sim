@@ -75,7 +75,9 @@ export const ControlPanel: React.FC = () => {
         setActiveReferenceFrame,
         tauRange,
         setTauRange,
-        loadPreset
+        loadPreset,
+        showClocks,
+        setShowClocks
     } = useSimulatorStore();
 
     return (
@@ -134,6 +136,18 @@ export const ControlPanel: React.FC = () => {
                         {tauRange.toString().padStart(3, '0')}
                     </div>
                 </div>
+            </div>
+
+            <div className="px-6 mb-6 flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-300 cursor-pointer select-none flex-1" onClick={() => setShowClocks(!showClocks)}>
+                    Show Entity Clocks
+                </label>
+                <button
+                    onClick={() => setShowClocks(!showClocks)}
+                    className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${showClocks ? 'bg-cyan-500' : 'bg-slate-700'}`}
+                >
+                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${showClocks ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
             </div>
 
             <div className="px-6 mb-4 flex items-center justify-between">
