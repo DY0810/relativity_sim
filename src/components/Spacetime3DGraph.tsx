@@ -193,6 +193,9 @@ export const Spacetime3DGraph: React.FC = () => {
         const ySurf: number[][] = [];
         const zSurf: number[][] = [];
 
+        // Center the light cone on the active reference frame's origin
+        const ot = activeReferenceFrameId === 'Lab' ? 0 : playheadTime;
+
         for (let i = 0; i <= N; i++) {
             const th = (2 * Math.PI * i) / N;
             const xRow: number[] = [], yRow: number[] = [], zRow: number[] = [];
@@ -200,7 +203,7 @@ export const Spacetime3DGraph: React.FC = () => {
                 const t = (range * j) / N;
                 xRow.push(t * Math.cos(th));
                 yRow.push(t * Math.sin(th));
-                zRow.push(t);
+                zRow.push(t + ot); // Shift future cone up by ot
             }
             xSurf.push(xRow); ySurf.push(yRow); zSurf.push(zRow);
         }
@@ -218,12 +221,23 @@ export const Spacetime3DGraph: React.FC = () => {
             showlegend: false,
         } as any;
 
-        // Past light cone (negate z)
+        // Past light cone
+        // For past cone, time goes backwards from ot, so z = ot - t
+        const pastZSurf: number[][] = [];
+        for (let i = 0; i <= N; i++) {
+            const zRow: number[] = [];
+            for (let j = 0; j <= N; j++) {
+                const t = (range * j) / N;
+                zRow.push(ot - t);
+            }
+            pastZSurf.push(zRow);
+        }
+
         const pastCone: Plotly.Data = {
             type: 'surface',
             x: xSurf,
             y: ySurf,
-            z: zSurf.map(row => row.map(v => -v)),
+            z: pastZSurf,
             opacity: 0.08,
             colorscale: [[0, '#fbbf24'], [1, '#fbbf24']],
             showscale: false,
@@ -232,7 +246,7 @@ export const Spacetime3DGraph: React.FC = () => {
         } as any;
 
         return [futureCone, pastCone];
-    }, []);
+    }, [activeReferenceFrameId, playheadTime]);
 
     // Simultaneity plane at current playhead time
     const simultaneityPlane = useMemo(() => {
