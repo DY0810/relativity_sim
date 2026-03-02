@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { ParticleState, Vector4, NumericVector4 } from '../engine/cas';
 import { solveFromPosition, solveFromVelocity, solveFromAcceleration, evaluateVectorAtTau } from '../engine/cas';
 import { extract3Velocity } from '../engine/physics';
+import { PARADOX_PRESETS } from '../constants/ParadoxPresets';
 
 export type SpatialDimension = 'x' | 'y' | 'z';
 export type InputType = 'position' | 'velocity' | 'acceleration';
@@ -24,6 +25,7 @@ export interface SimulatorState {
     updateParticleColor: (id: string, color: string) => void;
     updateParticleInput: (id: string, inputType: InputType, input: Vector4) => void;
     updateParticleInitialConditions: (id: string, X0?: NumericVector4, U0?: NumericVector4) => void;
+    loadPreset: (presetId: string) => void;
 
     setActiveReferenceFrame: (id: string | 'Lab') => void;
     setAnimationTime: (t: number) => void;
@@ -156,6 +158,50 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
                     accelerationExpr: A
                 };
             })
+        };
+    }),
+
+    loadPreset: (presetId) => set((state) => {
+        const preset = PARADOX_PRESETS.find(p => p.id === presetId);
+        if (!preset) return state;
+
+        const newParticles: ParticleState[] = preset.particles.map(pt => {
+            const p: ParticleState = {
+                id: generateId(),
+                name: pt.name,
+                color: pt.color,
+                mass: 1,
+                initialPosition: pt.initialPosition,
+                initialVelocity: pt.initialVelocity,
+                positionExpr: ['0', '0', '0', '0'],
+                velocityExpr: ['0', '0', '0', '0'],
+                accelerationExpr: ['0', '0', '0', '0']
+            };
+
+            if (pt.inputType === 'position') {
+                p.inputPosition = pt.input;
+                const sol = solveFromPosition(pt.input);
+                p.positionExpr = sol.X; p.velocityExpr = sol.U; p.accelerationExpr = sol.A;
+            } else if (pt.inputType === 'velocity') {
+                p.inputVelocity = pt.input;
+                const sol = solveFromVelocity(pt.input, p.initialPosition);
+                p.positionExpr = sol.X; p.velocityExpr = sol.U; p.accelerationExpr = sol.A;
+            } else if (pt.inputType === 'acceleration') {
+                p.inputAcceleration = pt.input;
+                const sol = solveFromAcceleration(pt.input, p.initialVelocity, p.initialPosition);
+                p.positionExpr = sol.X; p.velocityExpr = sol.U; p.accelerationExpr = sol.A;
+            }
+            return p;
+        });
+
+        return {
+            particles: newParticles,
+            timeMin: preset.timeMin,
+            timeMax: preset.timeMax,
+            tauRange: preset.tauRange,
+            viewMode: preset.viewMode,
+            animationTime: preset.timeMin, // Reset playhead
+            activeReferenceFrameId: 'Lab' // Always reset to Lab frame for presets
         };
     }),
 

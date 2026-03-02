@@ -5,6 +5,7 @@ import { VectorInput } from './VectorInput';
 import type { Vector4, NumericVector4 } from '../engine/cas';
 import { checkCausalityViolation } from '../engine/cas';
 import { evaluate as mathEval } from 'mathjs';
+import { PARADOX_PRESETS } from '../constants/ParadoxPresets';
 
 const parseNumericInput = (val: string): number => {
     try {
@@ -73,7 +74,8 @@ export const ControlPanel: React.FC = () => {
         activeReferenceFrameId,
         setActiveReferenceFrame,
         tauRange,
-        setTauRange
+        setTauRange,
+        loadPreset
     } = useSimulatorStore();
 
     return (
@@ -81,6 +83,24 @@ export const ControlPanel: React.FC = () => {
             <div className="px-6 mb-6">
                 <h2 className="text-[10px] font-bold tracking-widest uppercase text-cyan-neon/80 mb-1">Global Parameters</h2>
                 <div className="h-[1px] w-full bg-gradient-to-r from-cyan-neon/30 to-transparent mb-4"></div>
+
+                <label className="text-xs font-semibold text-slate-300 block mb-2">Load Classic Paradox</label>
+                <div className="relative mb-4">
+                    <select
+                        className="w-full appearance-none bg-emerald-900/30 backdrop-blur-md border border-emerald-500/30 rounded-xl px-4 py-2.5 text-emerald-100 text-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 cursor-pointer transition-all"
+                        onChange={(e) => {
+                            if (e.target.value !== "") loadPreset(e.target.value);
+                            e.target.value = "";
+                        }}
+                        defaultValue=""
+                    >
+                        <option value="" disabled className="bg-slate-900">-- Select Scenario --</option>
+                        {PARADOX_PRESETS.map(p => (
+                            <option key={p.id} value={p.id} className="bg-slate-900">{p.title}</option>
+                        ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-500/70">▼</div>
+                </div>
 
                 <label className="text-xs font-semibold text-slate-300 block mb-2">Active Reference Frame</label>
                 <div className="relative">
