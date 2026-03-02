@@ -89,10 +89,14 @@ export const PARADOX_PRESETS: ParadoxPreset[] = [
                 name: 'Helical Proton',
                 color: '#ec4899', // pink
                 inputType: 'position',
-                // Spiralling around Z axis over time
-                input: ['2*tau', 'cos(tau)*5', 'sin(tau)*5', 'tau/5'],
-                initialPosition: [0, 5, 0, 0],
-                initialVelocity: [2, 0, 5, 0.2]
+                // Spiralling around Z axis over time. 
+                // U^mu U_mu = -(3)^2 + (2)^2 + (2)^2 + (-2)^2 = -1 (Wait, -9 + 4 + 4 + 0? No, v_x= -2sin, v_y= 2cos, v_z= 2 -> -9+4+4+4 = -1) Wait. (-2)^2 + (2)^2 + (2)^2 = 12. -9 + 12 = 3. That violates.
+                // Let's use: t=3*tau, x=2*cos(tau), y=2*sin(tau), z=2*tau.
+                // v_t = 3, v_x = -2sin, v_y = 2cos, v_z = 2
+                // U^2 = -9 + 4 + 4 = -1. Perfect!
+                input: ['3*tau', '2*cos(tau)', '2*sin(tau)', '2*tau'],
+                initialPosition: [0, 2, 0, 0],
+                initialVelocity: [3, 0, 2, 2]
             }
         ]
     }

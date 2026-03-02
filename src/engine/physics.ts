@@ -60,15 +60,20 @@ export const validateCausality = (U: NumericVector4): { isValid: boolean, reason
 
     // Due to floating point errors from CAS parsing, use a small epsilon
     const EPSILON = 1e-4;
-    if (Math.abs(U_squared - (-1)) > EPSILON) {
-        return { isValid: false, reason: `4-velocity invariant U^mu U_mu must equal -1, but got ${U_squared.toFixed(4)}`, U_squared, v_squared: 0 };
+
+    // A valid 4-velocity must be either timelike (massive, U^2 = -1) or null (massless, U^2 = 0)
+    const isTimelike = Math.abs(U_squared - (-1)) <= EPSILON;
+    const isNull = Math.abs(U_squared - 0) <= EPSILON;
+
+    if (!isTimelike && !isNull) {
+        return { isValid: false, reason: `4-velocity invariant U^mu U_mu must equal -1 (massive) or 0 (photon), but got ${U_squared.toFixed(4)}`, U_squared, v_squared: 0 };
     }
 
     const v3 = extract3Velocity(U);
     const v_squared = Math.pow(v3[0], 2) + Math.pow(v3[1], 2) + Math.pow(v3[2], 2);
 
-    if (v_squared >= 1) {
-        return { isValid: false, reason: `Speed |v| must be strictly less than c (1), but got |v|^2 = ${v_squared.toFixed(4)}`, U_squared, v_squared };
+    if (v_squared > 1 + EPSILON) {
+        return { isValid: false, reason: `Speed |v| must be less than or equal to c (1), but got |v|^2 = ${v_squared.toFixed(4)}`, U_squared, v_squared };
     }
 
     return { isValid: true, U_squared, v_squared };
