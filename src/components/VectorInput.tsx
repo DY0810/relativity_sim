@@ -66,7 +66,7 @@ const SymbolPalette: React.FC<{
 }> = ({ onInsert }) => {
     return (
         <div
-            className="absolute left-0 top-full mt-1 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl shadow-black/40 p-2 w-[280px]"
+            className="absolute left-0 top-full mt-2 z-50 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] p-3 w-[280px]"
             onMouseDown={(e) => e.preventDefault()} // Prevent blur on click
         >
             {SYMBOL_GROUPS.map((group) => (
@@ -80,7 +80,7 @@ const SymbolPalette: React.FC<{
                                 key={item.insert}
                                 onClick={() => onInsert(item.insert)}
                                 title={item.description}
-                                className="px-2 py-1 text-xs font-mono bg-slate-700/60 hover:bg-blue-600/30 border border-slate-600/50 hover:border-blue-500/50 rounded text-slate-200 hover:text-blue-300 transition-colors cursor-pointer"
+                                className="px-2 py-1.5 text-xs font-mono bg-white/5 hover:bg-cyan-neon/10 border border-white/5 hover:border-cyan-neon/30 rounded-lg text-slate-300 hover:text-cyan-neon transition-all cursor-pointer shadow-sm"
                             >
                                 {item.display}
                             </button>
@@ -164,16 +164,16 @@ export const VectorInput: React.FC<Props> = ({ label, value, onChange, disabled 
 
     return (
         <div className="flex flex-col mb-4">
-            <label className="text-sm font-semibold text-slate-300 mb-1">{label}</label>
-            <div className="flex gap-1 w-full items-center">
-                <div className="text-lg text-slate-400 shrink-0">(</div>
+            <label className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-2.5 ml-1">{label}</label>
+            <div className="flex gap-1.5 w-full items-center">
+                <div className="text-xl font-light text-slate-500 shrink-0 select-none">(</div>
                 {localValues.map((val, i) => (
                     <React.Fragment key={i}>
                         <div className="relative flex-1 min-w-0" ref={el => { containerRefs.current[i] = el; }}>
                             <input
                                 ref={el => { inputRefs.current[i] = el; }}
                                 type="text"
-                                className={`w-full bg-slate-800 border ${errors[i] ? 'border-red-500' : activeIndex === i ? 'border-blue-500' : 'border-slate-600'} rounded px-2 py-1.5 text-slate-100 font-mono text-sm focus:outline-none focus:border-blue-500 transition-colors`}
+                                className={`w-full bg-black/20 border-b-2 bg-gradient-to-t from-white/5 to-transparent ${errors[i] ? 'border-red-500 text-red-100 shadow-[0_2px_10px_rgba(244,63,94,0.2)]' : activeIndex === i ? 'border-cyan-neon text-cyan-100 shadow-[0_2px_15px_rgba(6,182,212,0.3)]' : 'border-white/10 text-slate-300 hover:border-white/30'} rounded-t-lg rounded-b-sm px-2 py-2 font-mono text-sm text-center focus:outline-none transition-all placeholder:text-slate-600`}
                                 value={val}
                                 disabled={disabled}
                                 onChange={(e) => handleChange(i, e.target.value)}
@@ -189,10 +189,10 @@ export const VectorInput: React.FC<Props> = ({ label, value, onChange, disabled 
                                 />
                             )}
                         </div>
-                        {i < 3 && <div className="text-lg text-slate-400 self-center shrink-0">,</div>}
+                        {i < 3 && <div className="text-xl font-light text-slate-600 self-center shrink-0 select-none">,</div>}
                     </React.Fragment>
                 ))}
-                <div className="text-lg text-slate-400 self-center shrink-0">)</div>
+                <div className="text-xl font-light text-slate-500 self-center shrink-0 select-none">)</div>
             </div>
             {errors.some(e => e) && (
                 <span className="text-xs text-red-400 mt-1">Invalid expression. Use tau, trig functions (sin, cos, sinh, cosh), etc.</span>

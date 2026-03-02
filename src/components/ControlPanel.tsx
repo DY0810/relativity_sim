@@ -40,22 +40,22 @@ const NumericTupleInput: React.FC<{
 
     return (
         <div className="flex flex-col mb-4">
-            <label className="text-xs font-semibold text-slate-400 mb-1">{label}</label>
-            <div className="flex gap-1 w-full items-center">
-                <div className="text-sm text-slate-500 shrink-0">(</div>
+            <label className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-1.5">{label}</label>
+            <div className="flex gap-1 w-full items-center bg-black/20 border border-white/5 rounded-lg p-1">
+                <div className="text-sm text-slate-500 shrink-0 select-none pl-2">(</div>
                 {local.map((val, i) => (
                     <React.Fragment key={`num-${i}`}>
                         <input
                             type="text"
-                            className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-slate-200 font-mono text-xs focus:outline-none focus:border-blue-500"
+                            className="flex-1 min-w-0 bg-transparent px-1 py-1 text-slate-200 font-mono text-sm text-center focus:outline-none focus:bg-white/5 rounded transition-colors placeholder:text-slate-700"
                             value={val}
                             onChange={(e) => handleChange(i, e.target.value)}
                             onBlur={() => handleBlur(i)}
                         />
-                        {i < 3 && <div className="text-sm text-slate-500 shrink-0">,</div>}
+                        {i < 3 && <div className="text-sm text-slate-600 shrink-0 select-none">,</div>}
                     </React.Fragment>
                 ))}
-                <div className="text-sm text-slate-500 shrink-0">)</div>
+                <div className="text-sm text-slate-500 shrink-0 select-none pr-2">)</div>
             </div>
         </div>
     );
@@ -77,31 +77,30 @@ export const ControlPanel: React.FC = () => {
     } = useSimulatorStore();
 
     return (
-        <div className="w-[500px] h-full bg-slate-900 border-r border-slate-700 flex flex-col pt-4 overflow-y-auto custom-scrollbar">
+        <div className="w-full h-full bg-transparent flex flex-col pt-2 overflow-y-auto custom-scrollbar">
             <div className="px-6 mb-6">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                    Relativity Simulator
-                </h1>
-                <p className="text-slate-400 text-sm mt-1">Define objects using 4-vectors. Metric: (-,+,+,+)</p>
+                <h2 className="text-[10px] font-bold tracking-widest uppercase text-cyan-neon/80 mb-1">Global Parameters</h2>
+                <div className="h-[1px] w-full bg-gradient-to-r from-cyan-neon/30 to-transparent mb-4"></div>
+
+                <label className="text-xs font-semibold text-slate-300 block mb-2">Active Reference Frame</label>
+                <div className="relative">
+                    <select
+                        className="w-full appearance-none bg-black/30 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-cyan-neon focus:ring-1 focus:ring-cyan-neon/50 cursor-pointer transition-all"
+                        value={activeReferenceFrameId}
+                        onChange={(e) => setActiveReferenceFrame(e.target.value)}
+                    >
+                        <option value="Lab">Lab Rest Frame (Absolute)</option>
+                        {particles.map(p => (
+                            <option key={`frame-${p.id}`} value={p.id}>MCRF: {p.name}</option>
+                        ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">▼</div>
+                </div>
             </div>
 
-            <div className="px-6 mb-4">
-                <label className="text-sm font-semibold text-slate-300 block mb-2">Active Reference Frame</label>
-                <select
-                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 cursor-pointer"
-                    value={activeReferenceFrameId}
-                    onChange={(e) => setActiveReferenceFrame(e.target.value)}
-                >
-                    <option value="Lab">Lab Rest Frame</option>
-                    {particles.map(p => (
-                        <option key={`frame-${p.id}`} value={p.id}>{p.name}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="px-6 mb-4">
-                <label className="text-sm font-semibold text-slate-300 block mb-2">Worldline Range (τ)</label>
-                <div className="flex items-center gap-3">
+            <div className="px-6 mb-8">
+                <label className="text-xs font-semibold text-slate-300 block mb-3">Simulation Horizon (±τ)</label>
+                <div className="flex items-center gap-4">
                     <input
                         type="range"
                         min="10"
@@ -109,10 +108,17 @@ export const ControlPanel: React.FC = () => {
                         step="10"
                         value={tauRange}
                         onChange={(e) => setTauRange(Number(e.target.value))}
-                        className="flex-1 accent-blue-500 cursor-pointer"
+                        className="flex-1 glass-slider"
                     />
-                    <span className="text-slate-400 text-xs font-mono w-16 text-right">±{tauRange}</span>
+                    <div className="bg-black/30 border border-white/10 rounded-lg px-3 py-1 font-mono text-xs text-cyan-neon shadow-neon-cyan/20">
+                        {tauRange.toString().padStart(3, '0')}
+                    </div>
                 </div>
+            </div>
+
+            <div className="px-6 mb-4 flex items-center justify-between">
+                <h2 className="text-[10px] font-bold tracking-widest uppercase text-violet-neon/80">Entity Array</h2>
+                <div className="h-[1px] flex-1 bg-gradient-to-l from-violet-neon/30 to-transparent ml-4"></div>
             </div>
 
             <div className="flex-1 px-4 pb-20">
@@ -123,64 +129,76 @@ export const ControlPanel: React.FC = () => {
                     const isFTL = checkCausalityViolation(p.velocityExpr);
 
                     return (
-                        <div key={p.id} className={`mb-4 bg-slate-800/50 border rounded-lg p-4 relative transition-colors ${isFTL ? 'border-red-500/70 hover:border-red-400' : 'border-slate-700 hover:border-slate-600'}`}>
-                            <div className="flex justify-between items-center mb-4">
-                                <div className="flex items-center gap-2 flex-1 mr-4">
-                                    <input
-                                        type="color"
-                                        value={p.color}
-                                        onChange={(e) => updateParticleColor(p.id, e.target.value)}
-                                        className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
-                                        title="Change particle color"
-                                    />
+                        <div
+                            key={p.id}
+                            className={`mb-5 backdrop-blur-xl border rounded-2xl p-5 relative transition-all duration-500 group
+                                ${isFTL
+                                    ? 'bg-red-950/20 border-red-500/50 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
+                                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                                }`}
+                            style={{ boxShadow: !isFTL ? `inset 0 0 40px ${p.color}08` : undefined }}
+                        >
+                            {/* Accent Glow Line */}
+                            <div className="absolute top-0 left-4 right-4 h-[1px] opacity-50" style={{ background: `linear-gradient(90deg, transparent, ${p.color}, transparent)` }}></div>
+
+                            <div className="flex justify-between items-center mb-5">
+                                <div className="flex items-center gap-3 flex-1 mr-4">
+                                    <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/20 shadow-lg cursor-pointer flex-shrink-0" style={{ boxShadow: `0 0 10px ${p.color}40` }}>
+                                        <input
+                                            type="color"
+                                            value={p.color}
+                                            onChange={(e) => updateParticleColor(p.id, e.target.value)}
+                                            className="absolute -inset-2 w-10 h-10 p-0 cursor-pointer"
+                                            title="Change marker color"
+                                        />
+                                    </div>
                                     <input
                                         type="text"
                                         value={p.name}
                                         onChange={(e) => updateParticleName(p.id, e.target.value)}
-                                        className="font-semibold text-slate-200 bg-transparent border-b border-transparent hover:border-slate-600 focus:border-blue-500 focus:outline-none transition-colors px-1 w-full"
-                                        title="Rename particle"
+                                        className="font-bold text-lg text-slate-100 bg-transparent border-b border-white/0 hover:border-white/10 focus:border-cyan-neon focus:outline-none transition-colors px-1 w-full"
+                                        title="Rename entity"
                                     />
                                 </div>
                                 {particles.length > 1 && (
-                                    <button onClick={() => removeParticle(p.id)} className="text-slate-500 hover:text-red-400 transition-colors text-sm px-2 py-1">
-                                        Remove
+                                    <button
+                                        onClick={() => removeParticle(p.id)}
+                                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all text-xs tracking-wider uppercase font-bold px-2 py-1"
+                                    >
+                                        Delete
                                     </button>
                                 )}
                             </div>
 
-                            <div className="mb-4">
-                                <label className="text-xs font-semibold text-slate-400 block mb-2 mt-2">Define Object By:</label>
-                                <div className="flex gap-2">
-                                    {(['position', 'velocity', 'acceleration'] as InputType[]).map(type => (
-                                        <button
-                                            key={type}
-                                            className={`flex-1 py-1 px-2 text-xs rounded border transition-colors ${inputType === type
-                                                ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500'
-                                                }`}
-                                            onClick={() => updateParticleInput(p.id, type, inputValue)}
-                                        >
-                                            4-{type.charAt(0).toUpperCase() + type.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
+                            <div className="mb-5 bg-black/20 rounded-xl p-1 border border-white/5 flex gap-1">
+                                {(['position', 'velocity', 'acceleration'] as InputType[]).map(type => (
+                                    <button
+                                        key={type}
+                                        className={`flex-1 py-1.5 px-2 text-[10px] font-bold tracking-widest uppercase rounded-lg transition-all duration-300 ${inputType === type
+                                            ? 'bg-white/10 text-white shadow-lg'
+                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                            }`}
+                                        onClick={() => updateParticleInput(p.id, type, inputValue)}
+                                    >
+                                        4-{type.charAt(0)}
+                                    </button>
+                                ))}
                             </div>
 
                             <VectorInput
-                                label={`Symbolic 4-${inputType.charAt(0).toUpperCase() + inputType.slice(1)} (f(τ))`}
+                                label={`f(τ) : Symbolic 4-${inputType.charAt(0).toUpperCase() + inputType.slice(1)}`}
                                 value={inputValue}
                                 onChange={(val) => updateParticleInput(p.id, inputType, val)}
                             />
 
                             {isFTL && (
-                                <div className="mt-3 p-3 rounded-md bg-red-500/10 border border-red-500/30">
-                                    <div className="flex items-start gap-2">
-                                        <span className="text-red-400 text-lg leading-none mt-0.5">⚠</span>
+                                <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 backdrop-blur-md shadow-[0_0_15px_rgba(244,63,94,0.1)]">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 animate-pulse-slow shadow-[0_0_10px_rgba(244,63,94,0.8)]"></div>
                                         <div>
-                                            <p className="text-red-300 text-xs font-semibold">Causality Violation — FTL Detected</p>
-                                            <p className="text-red-400/80 text-xs mt-1 leading-relaxed">
-                                                This worldline exceeds the speed of light (|v| &gt; c) for some values of τ.
-                                                The particle will not be rendered on the graph until the trajectory is corrected.
+                                            <p className="text-red-400 text-xs font-bold tracking-widest uppercase mb-1">Causality Violation</p>
+                                            <p className="text-red-300/70 text-xs leading-relaxed">
+                                                Tachyonic trajectory detected (|v| &gt; c). Metric constraints failed. Render suspended.
                                             </p>
                                         </div>
                                     </div>
@@ -188,17 +206,17 @@ export const ControlPanel: React.FC = () => {
                             )}
 
                             {inputType !== 'position' && (
-                                <div className="mt-4 pt-4 border-t border-slate-700">
-                                    <h4 className="text-xs font-semibold text-slate-400 mb-3 opacity-80 uppercase tracking-wider">Initial Conditions (at τ=0)</h4>
+                                <div className="mt-5 pt-5 border-t border-white/5 relative">
+                                    <h4 className="text-[10px] font-bold text-slate-500 mb-4 opacity-80 uppercase tracking-widest">Boundary Conditions (τ=0)</h4>
                                     {inputType === 'acceleration' && (
                                         <NumericTupleInput
-                                            label="Initial 4-Velocity U₀^μ"
+                                            label="U₀^μ [Initial Velocity]"
                                             value={p.initialVelocity}
                                             onChange={(val) => updateParticleInitialConditions(p.id, undefined, val)}
                                         />
                                     )}
                                     <NumericTupleInput
-                                        label="Initial 4-Position X₀^μ"
+                                        label="X₀^μ [Initial Position]"
                                         value={p.initialPosition}
                                         onChange={(val) => updateParticleInitialConditions(p.id, val, undefined)}
                                     />
@@ -210,9 +228,9 @@ export const ControlPanel: React.FC = () => {
 
                 <button
                     onClick={addParticle}
-                    className="w-full py-3 mt-2 rounded-lg border border-dashed border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-400 hover:bg-slate-800 transition-all font-medium"
+                    className="w-full py-4 mt-2 mb-8 rounded-2xl border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all font-bold text-sm tracking-wide shadow-lg group flex items-center justify-center gap-2"
                 >
-                    + Add Object
+                    <span className="text-xl leading-none text-emerald-neon group-hover:scale-110 transition-transform">+</span> INITIALIZE ENTITY
                 </button>
             </div>
         </div>

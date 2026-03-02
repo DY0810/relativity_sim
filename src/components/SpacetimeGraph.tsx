@@ -305,31 +305,31 @@ export const SpacetimeGraph: React.FC = () => {
                     title: { text: `Minkowski Spacetime (t${axisPrefix}-${activeDimension}${axisPrefix} plane, c=1)` },
                     paper_bgcolor: 'transparent',
                     plot_bgcolor: 'transparent',
-                    font: { color: '#94a3b8', family: 'Inter' },
+                    font: { color: '#94a3b8', family: 'JetBrains Mono, monospace' },
                     xaxis: {
                         title: { text: `${activeDimension}${axisPrefix} (m)` },
                         range: [-10, 10],
                         zeroline: true,
-                        zerolinecolor: '#475569',
+                        zerolinecolor: 'rgba(6, 182, 212, 0.4)',
                         showgrid: false,
                     },
                     yaxis: {
                         title: { text: `t${axisPrefix} (s)` },
                         range: [-10, 10],
                         zeroline: true,
-                        zerolinecolor: '#475569',
+                        zerolinecolor: 'rgba(6, 182, 212, 0.4)',
                         showgrid: false,
                         scaleanchor: 'x',
                         scaleratio: 1,
                     },
-                    margin: { l: 60, r: 40, b: 60, t: 60 },
+                    margin: { t: 50, r: 30, l: 50, b: 50 },
                     showlegend: true,
-                    legend: { x: 0, y: 1 },
-                    autosize: true
+                    legend: { font: { family: 'JetBrains Mono' }, x: 0.02, y: 0.98, bgcolor: 'rgba(0,0,0,0.5)', bordercolor: 'rgba(255,255,255,0.1)', borderwidth: 1 },
+                    autosize: true,
                 }}
                 useResizeHandler={true}
                 style={{ width: '100%', height: '100%' }}
-                config={{ displayModeBar: true, scrollZoom: true, responsive: true }}
+                config={{ displayModeBar: false, scrollZoom: true, responsive: true }}
             />
         </div>
     );

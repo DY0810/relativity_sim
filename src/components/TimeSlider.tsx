@@ -64,18 +64,18 @@ export const TimeSlider: React.FC = () => {
     };
 
     return (
-        <div className="h-16 border-t border-slate-700 bg-slate-900 flex items-center px-6 gap-4 shadow-2xl z-20">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl h-14 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full px-6 flex items-center gap-4 shadow-[0_20px_40px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.1)] z-50 transition-all hover:bg-black/50 hover:border-white/20">
             {/* Playback controls */}
             <div className="flex items-center gap-1">
                 <button
                     onClick={() => setIsPlaying(!isPlaying)}
-                    className="p-2 rounded hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                    className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-cyan-neon transition-colors shadow-sm"
                 >
-                    {isPlaying ? <Square size={18} /> : <Play size={18} />}
+                    {isPlaying ? <Square size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
                 </button>
                 <button
                     onClick={() => { setIsPlaying(false); setAnimationTime(timeMin); }}
-                    className="p-2 rounded hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                    className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-cyan-neon transition-colors"
                 >
                     <SkipBack size={18} />
                 </button>
@@ -85,7 +85,7 @@ export const TimeSlider: React.FC = () => {
             {editingMin ? (
                 <input
                     type="number"
-                    className="w-20 bg-slate-800 border border-blue-500 rounded px-2 py-0.5 text-xs font-mono text-blue-400 focus:outline-none"
+                    className="w-16 bg-black/40 border border-cyan-neon/50 rounded-lg px-2 py-1 text-xs font-mono text-cyan-neon focus:outline-none focus:ring-1 focus:ring-cyan-neon text-right shadow-[0_0_10px_rgba(6,182,212,0.3)]"
                     value={minInput}
                     onChange={(e) => setMinInput(e.target.value)}
                     onBlur={submitMin}
@@ -96,7 +96,7 @@ export const TimeSlider: React.FC = () => {
             ) : (
                 <button
                     onClick={() => setEditingMin(true)}
-                    className="text-xs font-mono text-slate-500 hover:text-blue-400 transition-colors cursor-pointer w-20 text-right"
+                    className="text-xs font-mono text-slate-400 hover:text-cyan-neon transition-colors cursor-pointer w-16 text-right font-medium"
                     title="Click to edit start time"
                 >
                     {timeMin}
@@ -104,7 +104,7 @@ export const TimeSlider: React.FC = () => {
             )}
 
             {/* Slider */}
-            <div className="flex-1">
+            <div className="flex-1 px-4">
                 <input
                     type="range"
                     min={timeMin}
@@ -115,7 +115,7 @@ export const TimeSlider: React.FC = () => {
                         setIsPlaying(false);
                         setAnimationTime(parseFloat(e.target.value));
                     }}
-                    className="w-full accent-blue-500 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-1.5 glass-slider"
                 />
             </div>
 
@@ -123,7 +123,7 @@ export const TimeSlider: React.FC = () => {
             {editingMax ? (
                 <input
                     type="number"
-                    className="w-20 bg-slate-800 border border-blue-500 rounded px-2 py-0.5 text-xs font-mono text-blue-400 focus:outline-none"
+                    className="w-16 bg-black/40 border border-cyan-neon/50 rounded-lg px-2 py-1 text-xs font-mono text-cyan-neon focus:outline-none focus:ring-1 focus:ring-cyan-neon shadow-[0_0_10px_rgba(6,182,212,0.3)]"
                     value={maxInput}
                     onChange={(e) => setMaxInput(e.target.value)}
                     onBlur={submitMax}
@@ -134,7 +134,7 @@ export const TimeSlider: React.FC = () => {
             ) : (
                 <button
                     onClick={() => setEditingMax(true)}
-                    className="text-xs font-mono text-slate-500 hover:text-blue-400 transition-colors cursor-pointer w-20"
+                    className="text-xs font-mono text-slate-400 hover:text-cyan-neon transition-colors cursor-pointer w-16 text-left font-medium"
                     title="Click to edit end time"
                 >
                     {timeMax}
@@ -142,8 +142,8 @@ export const TimeSlider: React.FC = () => {
             )}
 
             {/* Current time */}
-            <div className="w-28 text-right">
-                <span className="text-base font-mono text-blue-400 font-bold">t = {animationTime.toFixed(2)}</span>
+            <div className="w-28 text-right border-l border-white/10 pl-4 py-1">
+                <span className="text-sm font-mono text-cyan-neon font-bold tracking-wider" style={{ textShadow: '0 0 10px rgba(6,182,212,0.5)' }}>t={animationTime.toFixed(2)}</span>
             </div>
         </div>
     );

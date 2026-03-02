@@ -380,29 +380,32 @@ export const Spacetime3DGraph: React.FC = () => {
         title: { text: '' },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        font: { color: '#94a3b8', family: 'Inter' },
+        font: { color: '#94a3b8', family: 'JetBrains Mono, monospace' },
         scene: {
             uirevision: 'camera-stable', // Preserves camera across data refreshes
             xaxis: {
                 title: { text: 'x' },
                 range: [-10, 10],
-                gridcolor: '#334155',
-                zerolinecolor: '#475569',
-                backgroundcolor: 'rgba(15, 23, 42, 0.5)',
+                gridcolor: 'rgba(255, 255, 255, 0.05)',
+                zerolinecolor: 'rgba(6, 182, 212, 0.4)',
+                backgroundcolor: 'rgba(0, 0, 0, 0)',
+                showbackground: false,
             },
             yaxis: {
                 title: { text: 'y' },
                 range: [-10, 10],
-                gridcolor: '#334155',
-                zerolinecolor: '#475569',
-                backgroundcolor: 'rgba(15, 23, 42, 0.5)',
+                gridcolor: 'rgba(255, 255, 255, 0.05)',
+                zerolinecolor: 'rgba(6, 182, 212, 0.4)',
+                backgroundcolor: 'rgba(0, 0, 0, 0)',
+                showbackground: false,
             },
             zaxis: {
                 title: { text: 't' },
                 range: [-10, 10],
-                gridcolor: '#334155',
-                zerolinecolor: '#475569',
-                backgroundcolor: 'rgba(15, 23, 42, 0.5)',
+                gridcolor: 'rgba(255, 255, 255, 0.05)',
+                zerolinecolor: 'rgba(6, 182, 212, 0.4)',
+                backgroundcolor: 'rgba(0, 0, 0, 0)',
+                showbackground: false,
             },
             aspectmode: 'cube',
             bgcolor: 'transparent',
@@ -411,9 +414,9 @@ export const Spacetime3DGraph: React.FC = () => {
                 up: { x: 0, y: 0, z: 1 }
             },
         },
-        margin: { l: 0, r: 0, b: 0, t: 60 },
+        margin: { l: 0, r: 0, b: 0, t: 0 },
         showlegend: true,
-        legend: { x: 0, y: 1 },
+        legend: { font: { family: 'JetBrains Mono' }, x: 0.02, y: 0.98, bgcolor: 'rgba(0,0,0,0.5)', bordercolor: 'rgba(255,255,255,0.1)', borderwidth: 1 },
         autosize: true,
     });
 
@@ -436,16 +439,16 @@ export const Spacetime3DGraph: React.FC = () => {
                 layout={layoutRef.current as any}
                 useResizeHandler={true}
                 style={{ width: '100%', height: '100%' }}
-                config={{ displayModeBar: true, scrollZoom: true, responsive: true }}
+                config={{ displayModeBar: false, scrollZoom: true, responsive: true }}
                 ref={plotRef}
             />
 
             {/* Auto-rotate toggle */}
             <button
-                onClick={() => setAutoRotate(prev => !prev)}
-                className={`absolute bottom-6 right-6 z-10 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg backdrop-blur border ${autoRotate
-                    ? 'bg-emerald-600/80 border-emerald-500/50 text-white hover:bg-emerald-500/80'
-                    : 'bg-slate-800/80 border-slate-600/50 text-slate-300 hover:bg-slate-700/80'
+                onClick={() => setAutoRotate(!autoRotate)}
+                className={`absolute top-6 right-6 px-4 py-2 rounded-full font-mono text-xs font-bold transition-all z-10 backdrop-blur-md border shadow-lg ${autoRotate
+                    ? 'bg-cyan-neon/20 border-cyan-neon text-cyan-neon shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                    : 'bg-black/40 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
                     }`}
                 title={autoRotate ? 'Click to stop rotation (or drag the graph)' : 'Click to auto-rotate'}
             >
