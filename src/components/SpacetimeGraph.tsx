@@ -172,6 +172,9 @@ export const SpacetimeGraph: React.FC = () => {
                     x: [horizontalAxis[0]],
                     y: [transformed.t[0]],
                     marker: { color: '#ffffff', size: 10, line: { color: pColor, width: 3 } },
+                    text: [`<b>${p.name}</b><br>Lab t: ${animationTime.toFixed(1)}s<br>Proper τ: ${particle_tau.toFixed(1)}s`],
+                    textposition: 'top center',
+                    textfont: { family: 'JetBrains Mono', color: pColor, size: 12 },
                     showlegend: false,
                     hoverinfo: 'skip'
                 } as Plotly.Data;

@@ -187,14 +187,17 @@ export const Spacetime3DGraph: React.FC = () => {
             if (isFinite(tr.x[0]) && isFinite(tr.y[0]) && isFinite(tr.t[0])) {
                 traces.push({
                     type: 'scatter3d',
-                    mode: 'markers',
                     x: [tr.x[0]],
                     y: [tr.y[0]],
                     z: [tr.t[0]],
                     marker: { color: '#ffffff', size: 5, line: { color: p.color, width: 2 }, symbol: 'circle' },
+                    text: [`<b>${p.name}</b><br>Lab t: ${animationTime.toFixed(1)}s<br>Proper τ: ${particle_tau.toFixed(1)}s`],
+                    textfont: { family: 'JetBrains Mono', color: p.color, size: 12 },
+                    textposition: 'top center',
+                    mode: 'markers+text' as any,
                     showlegend: false,
                     hoverinfo: 'skip' as any,
-                } as Plotly.Data);
+                } as any);
             }
         });
 
