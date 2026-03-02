@@ -248,6 +248,111 @@ export const Spacetime3DGraph: React.FC = () => {
         return [futureCone, pastCone];
     }, [activeReferenceFrameId, playheadTime]);
 
+    // Dimension mapping for 2D is not needed here, we do true 3D
+    const gridData = useMemo(() => {
+        const traces: Plotly.Data[] = [];
+        const RANGE = 10;
+        const STEP = 2;
+
+        // 1. Grid of constant T planes (just t=0, and maybe t=±5)
+        for (let t_plane of [-5, 0, 5]) {
+            // Lines parallel to X (varying x, fixed y)
+            for (let y = -RANGE; y <= RANGE; y += STEP) {
+                const t_lab = [t_plane, t_plane];
+                const x_lab = [-RANGE, RANGE];
+                const y_lab = [y, y];
+                const z_lab = [0, 0];
+
+                const tr = transformWorldlineCoordinates({ t: t_lab, x: x_lab, y: y_lab, z: z_lab }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
+                traces.push({
+                    type: 'scatter3d', mode: 'lines',
+                    x: tr.x, y: tr.y, z: tr.t,
+                    line: { color: t_plane === 0 ? '#475569' : '#334155', width: t_plane === 0 ? 3 : 1 },
+                    hoverinfo: 'skip', showlegend: false
+                } as any);
+            }
+            // Lines parallel to Y (varying y, fixed x)
+            for (let x = -RANGE; x <= RANGE; x += STEP) {
+                const t_lab = [t_plane, t_plane];
+                const x_lab = [x, x];
+                const y_lab = [-RANGE, RANGE];
+                const z_lab = [0, 0];
+
+                const tr = transformWorldlineCoordinates({ t: t_lab, x: x_lab, y: y_lab, z: z_lab }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
+                traces.push({
+                    type: 'scatter3d', mode: 'lines',
+                    x: tr.x, y: tr.y, z: tr.t,
+                    line: { color: t_plane === 0 ? '#475569' : '#334155', width: t_plane === 0 ? 3 : 1 },
+                    hoverinfo: 'skip', showlegend: false
+                } as any);
+            }
+        }
+
+        // 2. Vertical lines (constant X, constant Y, varying T)
+        for (let x = -RANGE; x <= RANGE; x += STEP * 2) {
+            for (let y = -RANGE; y <= RANGE; y += STEP * 2) {
+                const t_lab = [-RANGE, RANGE];
+                const x_lab = [x, x];
+                const y_lab = [y, y];
+                const z_lab = [0, 0];
+
+                const tr = transformWorldlineCoordinates({ t: t_lab, x: x_lab, y: y_lab, z: z_lab }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
+                traces.push({
+                    type: 'scatter3d', mode: 'lines',
+                    x: tr.x, y: tr.y, z: tr.t,
+                    line: { color: '#334155', width: 1 },
+                    hoverinfo: 'skip', showlegend: false
+                } as any);
+            }
+        }
+
+        // 3. Hyperbolic invariant intervals (on x-t and y-t planes)
+        for (let c = 2; c <= RANGE; c += 2) {
+            const vals = [];
+            for (let v = -RANGE; v <= RANGE; v += 0.5) vals.push(v);
+
+            const h_x1 = [], h_t1 = [], h_x2 = [], h_t2 = []; // Time-like
+            const h_x3 = [], h_t3 = [], h_x4 = [], h_t4 = []; // Space-like
+
+            for (const val of vals) {
+                const t_val = Math.sqrt(c * c + val * val);
+                if (t_val <= RANGE) {
+                    h_x1.push(val); h_t1.push(t_val);
+                    h_x2.push(val); h_t2.push(-t_val);
+                }
+                const x_val = Math.sqrt(c * c + val * val);
+                if (x_val <= RANGE) {
+                    h_t3.push(val); h_x3.push(x_val);
+                    h_t4.push(val); h_x4.push(-x_val);
+                }
+            }
+
+            // Apply to X axis (y=0)
+            [{ x: h_x1, t: h_t1 }, { x: h_x2, t: h_t2 }, { x: h_x3, t: h_t3 }, { x: h_x4, t: h_t4 }].forEach(curve => {
+                const tr = transformWorldlineCoordinates({ t: curve.t, x: curve.x, y: curve.x.map(() => 0), z: curve.x.map(() => 0) }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
+                traces.push({
+                    type: 'scatter3d', mode: 'lines',
+                    x: tr.x, y: tr.y, z: tr.t,
+                    line: { color: '#0f766e', width: 2, dash: 'dot' },
+                    hoverinfo: 'skip', showlegend: false
+                } as any);
+            });
+
+            // Apply to Y axis (x=0)
+            [{ y: h_x1, t: h_t1 }, { y: h_x2, t: h_t2 }, { y: h_x3, t: h_t3 }, { y: h_x4, t: h_t4 }].forEach(curve => {
+                const tr = transformWorldlineCoordinates({ t: curve.t, x: curve.y.map(() => 0), y: curve.y, z: curve.y.map(() => 0) }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
+                traces.push({
+                    type: 'scatter3d', mode: 'lines',
+                    x: tr.x, y: tr.y, z: tr.t,
+                    line: { color: '#0f766e', width: 2, dash: 'dot' },
+                    hoverinfo: 'skip', showlegend: false
+                } as any);
+            });
+        }
+
+        return traces;
+    }, [MCRF]);
+
     // Simultaneity plane at current playhead time
     const simultaneityPlane = useMemo(() => {
         const r = 10;
@@ -327,7 +432,7 @@ export const Spacetime3DGraph: React.FC = () => {
     return (
         <div className="w-full h-full relative p-4">
             <Plot
-                data={[...lightConeData, simultaneityPlane, ...plotData, ...markerData]}
+                data={[...lightConeData, ...gridData, simultaneityPlane, ...plotData, ...markerData]}
                 layout={layoutRef.current as any}
                 useResizeHandler={true}
                 style={{ width: '100%', height: '100%' }}
