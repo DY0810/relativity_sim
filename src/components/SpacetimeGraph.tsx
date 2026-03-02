@@ -54,16 +54,15 @@ export const SpacetimeGraph: React.FC = () => {
 
         // ACCELERATING particle: time-dependent MCRF (Poincaré = boost + translation)
         const tau = findTauForLabTime(frameParticle.positionExpr, animationTime);
-        const X_origin = evaluateVectorAtTau(frameParticle.positionExpr, tau);
         const U = evaluateVectorAtTau(frameParticle.velocityExpr, tau);
 
-        if (Math.abs(U[0]) < 1e-5) return { MCRF: { Lambda: getLorentzBoostMatrix([0, 0, 0]), X_origin, tau }, playheadTime: tau };
+        if (Math.abs(U[0]) < 1e-5) return { MCRF: { Lambda: getLorentzBoostMatrix([0, 0, 0]), X_origin: [0, 0, 0, 0] as NumericVector4, tau: 0 }, playheadTime: tau };
 
         const v3: [number, number, number] = [U[1] / U[0], U[2] / U[0], U[3] / U[0]];
         const v2 = v3[0] * v3[0] + v3[1] * v3[1] + v3[2] * v3[2];
-        if (v2 >= 0.99999) return { MCRF: { Lambda: getLorentzBoostMatrix([0, 0, 0]), X_origin, tau }, playheadTime: tau };
+        if (v2 >= 0.99999) return { MCRF: { Lambda: getLorentzBoostMatrix([0, 0, 0]), X_origin: [0, 0, 0, 0] as NumericVector4, tau: 0 }, playheadTime: tau };
 
-        return { MCRF: { Lambda: getLorentzBoostMatrix(v3), X_origin, tau }, playheadTime: tau };
+        return { MCRF: { Lambda: getLorentzBoostMatrix(v3), X_origin: [0, 0, 0, 0] as NumericVector4, tau: 0 }, playheadTime: tau };
     }, [activeReferenceFrameId, particles, animationTime]);
 
     // Dimension mapping for horizontal axis
