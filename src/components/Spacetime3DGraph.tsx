@@ -204,7 +204,7 @@ export const Spacetime3DGraph: React.FC = () => {
         });
 
         return traces;
-    }, [particles, animationTime, MCRF]);
+    }, [particles, animationTime, MCRF, showClocks]);
 
     // Light cone surface: x² + y² = t² → a cone in (x, y, t) space
     const lightConeData = useMemo(() => {

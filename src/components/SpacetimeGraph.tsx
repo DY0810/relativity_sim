@@ -189,7 +189,7 @@ export const SpacetimeGraph: React.FC = () => {
                 return { type: 'scatter', mode: 'markers', x: [], y: [], hoverinfo: 'skip' } as Plotly.Data;
             }
         });
-    }, [particles, animationTime, MCRF, dimIndex]);
+    }, [particles, animationTime, MCRF, dimIndex, showClocks]);
 
     // Generate dynamic skewed worldgrid lines
     const gridData: Plotly.Data[] = useMemo(() => {
