@@ -4,7 +4,6 @@ import { useSimulatorStore } from '../store/useSimulatorStore';
 import { evaluateVectorAtTau, findTauForLabTime, checkCausalityViolation, type NumericVector4 } from '../engine/cas';
 import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/physics';
 
-const STEPS = 500;
 
 export const Spacetime3DGraph: React.FC = () => {
     const { particles, activeReferenceFrameId, animationTime, tauRange } = useSimulatorStore();
@@ -118,7 +117,8 @@ export const Spacetime3DGraph: React.FC = () => {
             }
 
             const t: number[] = [], x: number[] = [], y: number[] = [], z: number[] = [];
-            const step = (tauRange * 2) / STEPS;
+            const dynamicSteps = Math.max(500, tauRange * 10);
+            const step = (tauRange * 2) / dynamicSteps;
             for (let tau = -tauRange; tau <= tauRange; tau += step) {
                 const val = evaluateVectorAtTau(p.positionExpr, tau);
                 t.push(val[0]); x.push(val[1]); y.push(val[2]); z.push(val[3]);

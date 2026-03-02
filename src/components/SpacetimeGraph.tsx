@@ -4,7 +4,6 @@ import { useSimulatorStore } from '../store/useSimulatorStore';
 import { evaluateVectorAtTau, findTauForLabTime, checkCausalityViolation, type NumericVector4 } from '../engine/cas';
 import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/physics';
 
-const STEPS = 500;
 
 export const SpacetimeGraph: React.FC = () => {
     const { particles, activeReferenceFrameId, activeDimension, animationTime, tauRange } = useSimulatorStore();
@@ -79,7 +78,11 @@ export const SpacetimeGraph: React.FC = () => {
 
             // Evaluate parametrically over tau
             const t = [], x = [], y = [], z = [];
-            const step = (tauRange * 2) / STEPS;
+
+            // Dynamically scale resolution: at least 500 points, or 10 points per tau unit
+            const dynamicSteps = Math.max(500, tauRange * 10);
+            const step = (tauRange * 2) / dynamicSteps;
+
             for (let tau = -tauRange; tau <= tauRange; tau += step) {
                 const val = evaluateVectorAtTau(p.positionExpr, tau);
                 t.push(val[0]); x.push(val[1]); y.push(val[2]); z.push(val[3]);
