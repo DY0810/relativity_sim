@@ -346,6 +346,7 @@ export const SpacetimeGraph: React.FC = () => {
                     showlegend: true,
                     legend: { font: { family: 'JetBrains Mono' }, x: 0.02, y: 0.98, bgcolor: 'rgba(0,0,0,0.5)', bordercolor: 'rgba(255,255,255,0.1)', borderwidth: 1 },
                     autosize: true,
+                    dragmode: 'pan',
                 }}
                 useResizeHandler={true}
                 style={{ width: '100%', height: '100%' }}
