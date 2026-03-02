@@ -6,7 +6,7 @@ import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/
 
 
 export const SpacetimeGraph: React.FC = () => {
-    const { particles, activeReferenceFrameId, activeDimension, animationTime, tauRange, loadedPresetId, showClocks } = useSimulatorStore();
+    const { particles, activeReferenceFrameId, activeDimension, animationTime, tauRange, loadedPresetId } = useSimulatorStore();
 
     const [viewRange, setViewRange] = useState(10);
     const renderRange = Math.max(tauRange, viewRange);
@@ -173,11 +173,11 @@ export const SpacetimeGraph: React.FC = () => {
             if (horizontalAxis && transformed.t && !isNaN(horizontalAxis[0]) && !isNaN(transformed.t[0])) {
                 return {
                     type: 'scatter',
-                    mode: showClocks ? 'markers+text' : 'markers',
+                    mode: p.showClock !== false ? 'markers+text' : 'markers',
                     x: [horizontalAxis[0]],
                     y: [transformed.t[0]],
                     marker: { color: '#ffffff', size: 10, line: { color: pColor, width: 3 } },
-                    ...(showClocks && {
+                    ...(p.showClock !== false && {
                         text: [`<b>${p.name}</b><br>Lab t: ${animationTime.toFixed(1)}s<br>Proper τ: ${particle_tau.toFixed(1)}s`],
                         textposition: 'top center',
                         textfont: { family: 'JetBrains Mono', color: pColor, size: 12 }
@@ -189,18 +189,19 @@ export const SpacetimeGraph: React.FC = () => {
                 return { type: 'scatter', mode: 'markers', x: [], y: [], hoverinfo: 'skip' } as Plotly.Data;
             }
         });
-    }, [particles, animationTime, MCRF, dimIndex, showClocks]);
+    }, [particles, animationTime, MCRF, dimIndex]);
 
-    // Generate dynamic skewed worldgrid lines
     const gridData: Plotly.Data[] = useMemo(() => {
         const lines: Plotly.Data[] = [];
+        const limit = renderRange * 3;
+        const step = Math.max(1, Math.floor(renderRange / 10));
 
-        for (let c = -renderRange; c <= renderRange; c++) {
+        for (let c = -limit; c <= limit; c += step) {
             if (c === 0) continue;
 
             // Constant Time Line (t = c)
             let t_lab1 = [c, c];
-            let x_lab1 = [-renderRange, renderRange];
+            let x_lab1 = [-limit, limit];
             let y_lab1 = [0, 0];
             let z_lab1 = [0, 0];
             if (activeDimension === 'y') { y_lab1 = x_lab1; x_lab1 = [0, 0]; }
@@ -217,7 +218,7 @@ export const SpacetimeGraph: React.FC = () => {
             });
 
             // Constant Space Line (e.g. x = c)
-            let t_lab2 = [-renderRange, renderRange];
+            let t_lab2 = [-limit, limit];
             let x_lab2 = [c, c];
             let y_lab2 = [0, 0];
             let z_lab2 = [0, 0];
@@ -236,17 +237,19 @@ export const SpacetimeGraph: React.FC = () => {
         }
 
         // Hyperbolic curves
-        for (let c = 2; c < renderRange; c += 2) {
+        const limit_hyper = renderRange * 2;
+        const step_hyper = Math.max(2, Math.floor(renderRange / 5));
+        for (let c = step_hyper; c < limit_hyper; c += step_hyper) {
             const h_x1 = [], h_t1 = [], h_x2 = [], h_t2 = [];
             const h_x3 = [], h_t3 = [], h_x4 = [], h_t4 = [];
-            for (let val = -renderRange; val <= renderRange; val += (renderRange / 50)) {
+            for (let val = -limit_hyper; val <= limit_hyper; val += (limit_hyper / 50)) {
                 const t_val = Math.sqrt(c * c + val * val);
-                if (t_val <= renderRange) {
+                if (t_val <= limit_hyper) {
                     h_x1.push(val); h_t1.push(t_val);
                     h_x2.push(val); h_t2.push(-t_val);
                 }
                 const x_val = Math.sqrt(c * c + val * val);
-                if (x_val <= renderRange) {
+                if (x_val <= limit_hyper) {
                     h_t3.push(val); h_x3.push(x_val);
                     h_t4.push(val); h_x4.push(-x_val);
                 }

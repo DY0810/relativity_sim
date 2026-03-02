@@ -18,7 +18,6 @@ export interface SimulatorState {
     timeMin: number;
     timeMax: number;
     loadedPresetId: string | null;
-    showClocks: boolean;
 
     // Actions
     addParticle: () => void;
@@ -36,7 +35,7 @@ export interface SimulatorState {
     setTauRange: (range: number) => void;
     setTimeMin: (val: number) => void;
     setTimeMax: (val: number) => void;
-    setShowClocks: (val: boolean) => void;
+    toggleParticleClock: (id: string) => void;
 
     // Selectors
     getLabVelocityForParticle: (id: string) => [number, number, number];
@@ -61,6 +60,7 @@ const createDefaultParticle = (): ParticleState => {
         positionExpr: ['tau', '0', '0', '0'],
         velocityExpr: ['1', '0', '0', '0'],
         accelerationExpr: ['0', '0', '0', '0'],
+        showClock: true
     };
 };
 
@@ -74,7 +74,6 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     timeMin: -10,
     timeMax: 10,
     loadedPresetId: null,
-    showClocks: true,
 
     addParticle: () => set((state) => ({ particles: [...state.particles, createDefaultParticle()] })),
 
@@ -180,7 +179,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
                 initialVelocity: pt.initialVelocity,
                 positionExpr: ['0', '0', '0', '0'],
                 velocityExpr: ['0', '0', '0', '0'],
-                accelerationExpr: ['0', '0', '0', '0']
+                accelerationExpr: ['0', '0', '0', '0'],
+                showClock: true
             };
 
             // Pass input type along to store
@@ -223,7 +223,9 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     setTauRange: (range) => set({ tauRange: Math.max(10, Math.min(1000, range)) }),
     setTimeMin: (val) => set((s) => ({ timeMin: Math.min(val, s.timeMax - 0.1) })),
     setTimeMax: (val) => set((s) => ({ timeMax: Math.max(val, s.timeMin + 0.1) })),
-    setShowClocks: (val) => set({ showClocks: val }),
+    toggleParticleClock: (id) => set((state) => ({
+        particles: state.particles.map(p => p.id === id ? { ...p, showClock: !(p.showClock !== false) } : p)
+    })),
 
     getLabVelocityForParticle: (id) => {
         const { particles, animationTime } = get();

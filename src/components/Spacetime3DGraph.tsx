@@ -6,7 +6,7 @@ import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/
 
 
 export const Spacetime3DGraph: React.FC = () => {
-    const { particles, activeReferenceFrameId, animationTime, tauRange, loadedPresetId, showClocks } = useSimulatorStore();
+    const { particles, activeReferenceFrameId, animationTime, tauRange, loadedPresetId } = useSimulatorStore();
 
     const [autoRotate, setAutoRotate] = useState(true);
     const angleRef = useRef(0);
@@ -191,8 +191,8 @@ export const Spacetime3DGraph: React.FC = () => {
                     y: [tr.y[0]],
                     z: [tr.t[0]],
                     marker: { color: '#ffffff', size: 5, line: { color: p.color, width: 2 }, symbol: 'circle' },
-                    mode: showClocks ? 'markers+text' : 'markers',
-                    ...(showClocks && {
+                    mode: p.showClock !== false ? 'markers+text' : 'markers',
+                    ...(p.showClock !== false && {
                         text: [`<b>${p.name}</b><br>Lab t: ${animationTime.toFixed(1)}s<br>Proper τ: ${particle_tau.toFixed(1)}s`],
                         textposition: 'top center',
                         textfont: { family: 'JetBrains Mono', color: p.color, size: 12 }
@@ -204,7 +204,7 @@ export const Spacetime3DGraph: React.FC = () => {
         });
 
         return traces;
-    }, [particles, animationTime, MCRF, showClocks]);
+    }, [particles, animationTime, MCRF]);
 
     // Light cone surface: x² + y² = t² → a cone in (x, y, t) space
     const lightConeData = useMemo(() => {
@@ -272,11 +272,12 @@ export const Spacetime3DGraph: React.FC = () => {
     // Dimension mapping for 2D is not needed here, we do true 3D
     const gridData = useMemo(() => {
         const traces: Plotly.Data[] = [];
-        const RANGE = tauRange;
+        const limit = tauRange * 3;
+        const RANGE = limit;
         const STEP = Math.max(2, Math.floor(tauRange / 5));
 
-        // 1. Grid of constant T planes (just t=0, and maybe t=±tauRange/2)
-        const tStep = tauRange / 2;
+        // 1. Grid of constant T planes (just t=0, and maybe t=±limit/2)
+        const tStep = limit / 2;
         for (let t_plane of [-tStep, 0, tStep]) {
             // Lines parallel to X (varying x, fixed y)
             for (let y = -RANGE; y <= RANGE; y += STEP) {
@@ -329,21 +330,22 @@ export const Spacetime3DGraph: React.FC = () => {
         }
 
         // 3. Hyperbolic invariant intervals (on x-t and y-t planes)
-        for (let c = STEP; c <= RANGE; c += STEP) {
+        const limit_hyper = tauRange * 2;
+        for (let c = STEP; c <= limit_hyper; c += STEP) {
             const vals = [];
-            for (let v = -RANGE; v <= RANGE; v += STEP / 4) vals.push(v);
+            for (let v = -limit_hyper; v <= limit_hyper; v += STEP / 4) vals.push(v);
 
             const h_x1 = [], h_t1 = [], h_x2 = [], h_t2 = []; // Time-like
             const h_x3 = [], h_t3 = [], h_x4 = [], h_t4 = []; // Space-like
 
             for (const val of vals) {
                 const t_val = Math.sqrt(c * c + val * val);
-                if (t_val <= RANGE) {
+                if (t_val <= limit_hyper) {
                     h_x1.push(val); h_t1.push(t_val);
                     h_x2.push(val); h_t2.push(-t_val);
                 }
                 const x_val = Math.sqrt(c * c + val * val);
-                if (x_val <= RANGE) {
+                if (x_val <= limit_hyper) {
                     h_t3.push(val); h_x3.push(x_val);
                     h_t4.push(val); h_x4.push(-x_val);
                 }

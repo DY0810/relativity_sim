@@ -64,6 +64,7 @@ export interface ParticleState {
     positionExpr: Vector4;
     velocityExpr: Vector4;
     accelerationExpr: Vector4;
+    showClock?: boolean;
 }
 
 /**

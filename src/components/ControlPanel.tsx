@@ -76,8 +76,7 @@ export const ControlPanel: React.FC = () => {
         tauRange,
         setTauRange,
         loadPreset,
-        showClocks,
-        setShowClocks
+        toggleParticleClock
     } = useSimulatorStore();
 
     return (
@@ -138,17 +137,7 @@ export const ControlPanel: React.FC = () => {
                 </div>
             </div>
 
-            <div className="px-6 mb-6 flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-300 cursor-pointer select-none flex-1" onClick={() => setShowClocks(!showClocks)}>
-                    Show Entity Clocks
-                </label>
-                <button
-                    onClick={() => setShowClocks(!showClocks)}
-                    className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${showClocks ? 'bg-cyan-500' : 'bg-slate-700'}`}
-                >
-                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${showClocks ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-            </div>
+
 
             <div className="px-6 mb-4 flex items-center justify-between">
                 <h2 className="text-[10px] font-bold tracking-widest uppercase text-violet-neon/80">Entity Array</h2>
@@ -194,14 +183,26 @@ export const ControlPanel: React.FC = () => {
                                         title="Rename entity"
                                     />
                                 </div>
-                                {particles.length > 1 && (
+                                <div className="flex items-center gap-2">
                                     <button
-                                        onClick={() => removeParticle(p.id)}
-                                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all text-xs tracking-wider uppercase font-bold px-2 py-1"
+                                        onClick={() => toggleParticleClock(p.id)}
+                                        className={`transition-all p-1.5 rounded-lg border ${p.showClock !== false ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30 shadow-[0_0_10px_rgba(34,211,238,0.2)]' : 'bg-white/5 text-slate-500 border-white/10 hover:text-slate-300 hover:bg-white/10'}`}
+                                        title={p.showClock !== false ? 'Hide Clock' : 'Show Clock'}
                                     >
-                                        Delete
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
                                     </button>
-                                )}
+                                    {particles.length > 1 && (
+                                        <button
+                                            onClick={() => removeParticle(p.id)}
+                                            className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 text-xs tracking-wider uppercase font-bold px-2 py-1 transition-all"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="mb-5 bg-black/20 rounded-xl p-1 border border-white/5 flex gap-1">
