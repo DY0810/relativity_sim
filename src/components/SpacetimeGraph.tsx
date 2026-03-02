@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import Plot from 'react-plotly.js';
 import { useSimulatorStore } from '../store/useSimulatorStore';
 import { evaluateVectorAtTau, findTauForLabTime, checkCausalityViolation, getCompiledExpression, type NumericVector4 } from '../engine/cas';
@@ -8,7 +8,8 @@ import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/
 export const SpacetimeGraph: React.FC = () => {
     const { particles, activeReferenceFrameId, activeDimension, animationTime, tauRange } = useSimulatorStore();
 
-    const GRID_RANGE = tauRange;
+    const [viewRange, setViewRange] = useState(10);
+    const renderRange = Math.max(tauRange, viewRange);
 
     // Determine active Momentarily Comoving Reference Frame (MCRF)
     // For INERTIAL frames: pure Lorentz boost, no translation. Grid tilts naturally.
@@ -89,7 +90,7 @@ export const SpacetimeGraph: React.FC = () => {
             const compY = getCompiledExpression(p.positionExpr[2]);
             const compZ = getCompiledExpression(p.positionExpr[3]);
 
-            for (let tau = -tauRange; tau <= tauRange; tau += step) {
+            for (let tau = -renderRange; tau <= renderRange; tau += step) {
                 const scope = { tau };
                 const vt = Number(compT.evaluate(scope));
                 const vx = Number(compX.evaluate(scope));
@@ -183,12 +184,12 @@ export const SpacetimeGraph: React.FC = () => {
     const gridData: Plotly.Data[] = useMemo(() => {
         const lines: Plotly.Data[] = [];
 
-        for (let c = -GRID_RANGE; c <= GRID_RANGE; c++) {
+        for (let c = -renderRange; c <= renderRange; c++) {
             if (c === 0) continue;
 
             // Constant Time Line (t = c)
             let t_lab1 = [c, c];
-            let x_lab1 = [-GRID_RANGE, GRID_RANGE];
+            let x_lab1 = [-renderRange, renderRange];
             let y_lab1 = [0, 0];
             let z_lab1 = [0, 0];
             if (activeDimension === 'y') { y_lab1 = x_lab1; x_lab1 = [0, 0]; }
@@ -205,7 +206,7 @@ export const SpacetimeGraph: React.FC = () => {
             });
 
             // Constant Space Line (e.g. x = c)
-            let t_lab2 = [-GRID_RANGE, GRID_RANGE];
+            let t_lab2 = [-renderRange, renderRange];
             let x_lab2 = [c, c];
             let y_lab2 = [0, 0];
             let z_lab2 = [0, 0];
@@ -224,17 +225,17 @@ export const SpacetimeGraph: React.FC = () => {
         }
 
         // Hyperbolic curves
-        for (let c = 2; c < GRID_RANGE; c += 2) {
+        for (let c = 2; c < renderRange; c += 2) {
             const h_x1 = [], h_t1 = [], h_x2 = [], h_t2 = [];
             const h_x3 = [], h_t3 = [], h_x4 = [], h_t4 = [];
-            for (let val = -GRID_RANGE; val <= GRID_RANGE; val += 0.2) {
+            for (let val = -renderRange; val <= renderRange; val += (renderRange / 50)) {
                 const t_val = Math.sqrt(c * c + val * val);
-                if (t_val <= GRID_RANGE) {
+                if (t_val <= renderRange) {
                     h_x1.push(val); h_t1.push(t_val);
                     h_x2.push(val); h_t2.push(-t_val);
                 }
                 const x_val = Math.sqrt(c * c + val * val);
-                if (x_val <= GRID_RANGE) {
+                if (x_val <= renderRange) {
                     h_t3.push(val); h_x3.push(x_val);
                     h_t4.push(val); h_x4.push(-x_val);
                 }
@@ -264,7 +265,7 @@ export const SpacetimeGraph: React.FC = () => {
     //   - Lab frame: origin (0, 0)
     //   - Particle frame: particle is at (x'=0, t'=playheadTime) by construction
     const lightConeData: Plotly.Data[] = useMemo(() => {
-        const range = GRID_RANGE * 3;
+        const range = renderRange * 3;
 
         // The light cone vertex: centered on the coordinate origin for Lab,
         // or the active particle's current event for particle frames.
@@ -294,7 +295,7 @@ export const SpacetimeGraph: React.FC = () => {
                 hoverinfo: 'skip'
             }
         ];
-    }, [activeReferenceFrameId, playheadTime, GRID_RANGE]);
+    }, [activeReferenceFrameId, playheadTime, renderRange]);
 
     // Current animation time indicator (horizontal line)
     // Note: 'animationTime' is currently strictly the global coordinate time t in the transformed frame
@@ -304,7 +305,7 @@ export const SpacetimeGraph: React.FC = () => {
             type: 'scatter',
             mode: 'lines',
             name: 'Simultaneity (t)',
-            x: [-GRID_RANGE, GRID_RANGE],
+            x: [-renderRange, renderRange],
             y: [tauVal, tauVal],
             line: { color: '#94a3b8', width: 1, dash: 'dot' },
             showlegend: false,
@@ -349,6 +350,23 @@ export const SpacetimeGraph: React.FC = () => {
                 useResizeHandler={true}
                 style={{ width: '100%', height: '100%' }}
                 config={{ displayModeBar: false, scrollZoom: true, responsive: true }}
+                onRelayout={(event: any) => {
+                    const x0 = event['xaxis.range[0]'];
+                    const x1 = event['xaxis.range[1]'];
+                    const y0 = event['yaxis.range[0]'];
+                    const y1 = event['yaxis.range[1]'];
+
+                    if (x0 !== undefined || y0 !== undefined) {
+                        let maxView = 10;
+                        if (x0 !== undefined && x1 !== undefined) maxView = Math.max(maxView, Math.abs(x0), Math.abs(x1));
+                        if (y0 !== undefined && y1 !== undefined) maxView = Math.max(maxView, Math.abs(y0), Math.abs(y1));
+
+                        // Only trigger re-render if zoom out expands view bounds significantly
+                        if (maxView > viewRange * 1.2 || maxView < viewRange * 0.5) {
+                            setViewRange(Math.ceil(maxView * 1.2));
+                        }
+                    }
+                }}
             />
         </div>
     );

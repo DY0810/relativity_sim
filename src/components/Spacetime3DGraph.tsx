@@ -204,7 +204,7 @@ export const Spacetime3DGraph: React.FC = () => {
     // Light cone surface: x² + y² = t² → a cone in (x, y, t) space
     const lightConeData = useMemo(() => {
         const N = 40;
-        const range = 10;
+        const range = tauRange;
         const xSurf: number[][] = [];
         const ySurf: number[][] = [];
         const zSurf: number[][] = [];
@@ -267,11 +267,12 @@ export const Spacetime3DGraph: React.FC = () => {
     // Dimension mapping for 2D is not needed here, we do true 3D
     const gridData = useMemo(() => {
         const traces: Plotly.Data[] = [];
-        const RANGE = 10;
-        const STEP = 2;
+        const RANGE = tauRange;
+        const STEP = Math.max(2, Math.floor(tauRange / 5));
 
-        // 1. Grid of constant T planes (just t=0, and maybe t=±5)
-        for (let t_plane of [-5, 0, 5]) {
+        // 1. Grid of constant T planes (just t=0, and maybe t=±tauRange/2)
+        const tStep = tauRange / 2;
+        for (let t_plane of [-tStep, 0, tStep]) {
             // Lines parallel to X (varying x, fixed y)
             for (let y = -RANGE; y <= RANGE; y += STEP) {
                 const t_lab = [t_plane, t_plane];
@@ -323,9 +324,9 @@ export const Spacetime3DGraph: React.FC = () => {
         }
 
         // 3. Hyperbolic invariant intervals (on x-t and y-t planes)
-        for (let c = 2; c <= RANGE; c += 2) {
+        for (let c = STEP; c <= RANGE; c += STEP) {
             const vals = [];
-            for (let v = -RANGE; v <= RANGE; v += 0.5) vals.push(v);
+            for (let v = -RANGE; v <= RANGE; v += STEP / 4) vals.push(v);
 
             const h_x1 = [], h_t1 = [], h_x2 = [], h_t2 = []; // Time-like
             const h_x3 = [], h_t3 = [], h_x4 = [], h_t4 = []; // Space-like
@@ -367,11 +368,11 @@ export const Spacetime3DGraph: React.FC = () => {
         }
 
         return traces;
-    }, [MCRF]);
+    }, [MCRF, tauRange]);
 
     // Simultaneity plane at current playhead time
     const simultaneityPlane = useMemo(() => {
-        const r = 10;
+        const r = tauRange;
         const tVal = isNaN(playheadTime) ? 0 : playheadTime;
         return {
             type: 'surface',
@@ -401,7 +402,7 @@ export const Spacetime3DGraph: React.FC = () => {
             uirevision: 'camera-stable', // Preserves camera across data refreshes
             xaxis: {
                 title: { text: 'x' },
-                range: [-10, 10],
+                range: [-tauRange, tauRange],
                 gridcolor: 'rgba(255, 255, 255, 0.05)',
                 zerolinecolor: 'rgba(6, 182, 212, 0.4)',
                 backgroundcolor: 'rgba(0, 0, 0, 0)',
@@ -409,7 +410,7 @@ export const Spacetime3DGraph: React.FC = () => {
             },
             yaxis: {
                 title: { text: 'y' },
-                range: [-10, 10],
+                range: [-tauRange, tauRange],
                 gridcolor: 'rgba(255, 255, 255, 0.05)',
                 zerolinecolor: 'rgba(6, 182, 212, 0.4)',
                 backgroundcolor: 'rgba(0, 0, 0, 0)',
@@ -417,7 +418,7 @@ export const Spacetime3DGraph: React.FC = () => {
             },
             zaxis: {
                 title: { text: 't' },
-                range: [-10, 10],
+                range: [-tauRange, tauRange],
                 gridcolor: 'rgba(255, 255, 255, 0.05)',
                 zerolinecolor: 'rgba(6, 182, 212, 0.4)',
                 backgroundcolor: 'rgba(0, 0, 0, 0)',
