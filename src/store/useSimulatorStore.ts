@@ -71,7 +71,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     animationTime: 0,
     activeDimension: 'x',
     viewMode: '2d',
-    tauRange: 50,
+    tauRange: 20,
     timeMin: -10,
     timeMax: 10,
     loadedPresetId: null,

@@ -8,7 +8,7 @@ import { getLorentzBoostMatrix, transformWorldlineCoordinates } from '../engine/
 export const Spacetime3DGraph: React.FC = () => {
     const { particles, activeReferenceFrameId, animationTime, tauRange, loadedPresetId } = useSimulatorStore();
 
-    const [autoRotate, setAutoRotate] = useState(true);
+    const [autoRotate, setAutoRotate] = useState(false);
     const angleRef = useRef(0);
     const plotRef = useRef<any>(null);
     const rafRef = useRef<number | null>(null);
@@ -434,7 +434,7 @@ export const Spacetime3DGraph: React.FC = () => {
             aspectmode: 'cube',
             bgcolor: 'transparent',
             camera: {
-                eye: { x: 1.5, y: 1.5, z: 1.2 },
+                eye: { x: 1.5, y: 1.5, z: 1.5 },
                 up: { x: 0, y: 0, z: 1 }
             },
         },
@@ -451,10 +451,16 @@ export const Spacetime3DGraph: React.FC = () => {
         l.scene.xaxis.title.text = `x${prime}`;
         l.scene.yaxis.title.text = `y${prime}`;
         l.scene.zaxis.title.text = `t${prime}`;
+
+        // Update ranges dynamically
+        l.scene.xaxis.range = [-tauRange, tauRange];
+        l.scene.yaxis.range = [-tauRange, tauRange];
+        l.scene.zaxis.range = [-tauRange, tauRange];
+
         // Reset camera when frame changes OR a new preset is loaded
         l.scene.uirevision = `${activeReferenceFrameId}-${loadedPresetId}`;
         l.uirevision = `${activeReferenceFrameId}-${loadedPresetId}`;
-    }, [activeReferenceFrameId, prime, loadedPresetId]);
+    }, [activeReferenceFrameId, prime, loadedPresetId, tauRange]);
 
     return (
         <div className="w-full h-full relative p-4">
