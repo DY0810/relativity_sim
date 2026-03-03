@@ -8,6 +8,7 @@ export interface ParadoxPreset {
     particles: {
         name: string;
         color: string;
+        mass?: number;
         inputType: InputType;
         input: Vector4;
         initialPosition: NumericVector4;

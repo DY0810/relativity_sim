@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ParticleState, Vector4, NumericVector4 } from '../engine/cas';
-import { solveFromPosition, solveFromVelocity, solveFromAcceleration, evaluateVectorAtTau } from '../engine/cas';
+import { solveFromPosition, solveFromVelocity, solveFromAcceleration, evaluateVectorAtTau, findTauForLabTime } from '../engine/cas';
 import { extract3Velocity } from '../engine/physics';
 import { PARADOX_PRESETS } from '../constants/ParadoxPresets';
 
@@ -24,6 +24,7 @@ export interface SimulatorState {
     removeParticle: (id: string) => void;
     updateParticleName: (id: string, name: string) => void;
     updateParticleColor: (id: string, color: string) => void;
+    updateParticleMass: (id: string, mass: number) => void;
     updateParticleInput: (id: string, inputType: InputType, input: Vector4) => void;
     updateParticleInitialConditions: (id: string, X0?: NumericVector4, U0?: NumericVector4) => void;
     loadPreset: (presetId: string) => void;
@@ -38,7 +39,7 @@ export interface SimulatorState {
     toggleParticleClock: (id: string) => void;
 
     // Selectors
-    getLabVelocityForParticle: (id: string) => [number, number, number];
+    getLabVelocityForParticle: (id: string, timeOverride?: number) => [number, number, number];
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -88,6 +89,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
 
     updateParticleColor: (id, color) => set((state) => ({
         particles: state.particles.map(p => p.id === id ? { ...p, color } : p)
+    })),
+
+    updateParticleMass: (id, mass) => set((state) => ({
+        particles: state.particles.map(p => p.id === id ? { ...p, mass } : p)
     })),
 
     updateParticleInput: (id, inputType, input) => set((state) => ({
@@ -174,7 +179,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
                 id: generateId(),
                 name: pt.name,
                 color: pt.color,
-                mass: 1,
+                mass: pt.mass ?? 1,
                 initialPosition: pt.initialPosition,
                 initialVelocity: pt.initialVelocity,
                 positionExpr: ['0', '0', '0', '0'],
@@ -227,15 +232,18 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         particles: state.particles.map(p => p.id === id ? { ...p, showClock: !(p.showClock !== false) } : p)
     })),
 
-    getLabVelocityForParticle: (id) => {
+    getLabVelocityForParticle: (id, timeOverride) => {
         const { particles, animationTime } = get();
         const p = particles.find(x => x.id === id);
         if (!p) return [0, 0, 0];
 
-        // Evaluate 4-velocity at the current proper time. 
-        // For simplicity, tracking the current proper time tau = current animation coordinate time t.
-        // In strict SR, t and tau differ. We'd map t to tau. As an approximation/demo, evaluate at tau=t.
-        const U_num = evaluateVectorAtTau(p.velocityExpr, animationTime);
+        const t = timeOverride !== undefined ? timeOverride : animationTime;
+
+        // Numerically find the proper time `tau` that corresponds to the Lab time `t`.
+        // Then evaluate the 4-velocity at `tau`.
+        const tauForT = findTauForLabTime(p.positionExpr, t);
+        const U_num = evaluateVectorAtTau(p.velocityExpr, tauForT);
+
         return extract3Velocity(U_num);
     }
 }));

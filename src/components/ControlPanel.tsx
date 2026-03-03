@@ -69,6 +69,7 @@ export const ControlPanel: React.FC = () => {
         removeParticle,
         updateParticleName,
         updateParticleColor,
+        updateParticleMass,
         updateParticleInput,
         updateParticleInitialConditions,
         activeReferenceFrameId,
@@ -76,7 +77,8 @@ export const ControlPanel: React.FC = () => {
         tauRange,
         setTauRange,
         loadPreset,
-        toggleParticleClock
+        toggleParticleClock,
+        getLabVelocityForParticle
     } = useSimulatorStore();
 
     return (
@@ -151,6 +153,14 @@ export const ControlPanel: React.FC = () => {
 
                     const isFTL = checkCausalityViolation(p.velocityExpr);
 
+                    const v3 = getLabVelocityForParticle(p.id);
+                    const v2 = v3[0] * v3[0] + v3[1] * v3[1] + v3[2] * v3[2];
+                    const gamma = v2 >= 1 ? Infinity : 1 / Math.sqrt(1 - v2);
+                    const E = p.mass * gamma;
+                    const px = p.mass * gamma * v3[0];
+                    const py = p.mass * gamma * v3[1];
+                    const pz = p.mass * gamma * v3[2];
+
                     return (
                         <div
                             key={p.id}
@@ -182,6 +192,18 @@ export const ControlPanel: React.FC = () => {
                                         className="font-bold text-lg text-slate-100 bg-transparent border-b border-white/0 hover:border-white/10 focus:border-cyan-neon focus:outline-none transition-colors px-1 w-full"
                                         title="Rename entity"
                                     />
+                                    <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
+                                        <span className="text-[10px] text-slate-500 font-bold tracking-wider" title="Rest Mass (m₀)">m₀</span>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            value={p.mass}
+                                            onChange={(e) => updateParticleMass(p.id, Number(e.target.value) || 0)}
+                                            className="w-12 bg-transparent text-emerald-400 font-mono text-sm focus:outline-none focus:bg-white/5 rounded px-1 transition-colors"
+                                            title="Rest Mass"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
@@ -255,6 +277,34 @@ export const ControlPanel: React.FC = () => {
                                         value={p.initialPosition}
                                         onChange={(val) => updateParticleInitialConditions(p.id, val, undefined)}
                                     />
+                                </div>
+                            )}
+
+                            {/* Physics Mechanics HUD */}
+                            {!isFTL && (
+                                <div className="mt-5 pt-5 border-t border-white/5 relative">
+                                    <h4 className="text-[10px] font-bold text-slate-500 mb-4 opacity-80 uppercase tracking-widest flex items-center justify-between">
+                                        <span>Relativistic Mechanics <span className="text-emerald-500/70 lowercase font-mono">({`E=γm₀c²`})</span></span>
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3 mb-2">
+                                        <div className="bg-black/20 border border-white/5 rounded-lg p-3">
+                                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1 shadow-sm">Energy (E)</div>
+                                            <div className="text-emerald-400 font-mono text-lg">{E === Infinity ? '∞' : E.toFixed(3)}</div>
+                                        </div>
+                                        <div className="bg-black/20 border border-white/5 rounded-lg p-3">
+                                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1 shadow-sm">Lorentz factor (γ)</div>
+                                            <div className="text-cyan-400 font-mono text-lg">{gamma === Infinity ? '∞' : gamma.toFixed(3)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-black/20 border border-white/5 rounded-lg p-2.5 flex items-center gap-3">
+                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest shadow-sm w-12 text-center">Mom. (P)</div>
+                                        <div className="w-px h-6 bg-white/10"></div>
+                                        <div className="text-slate-300 font-mono text-sm flex gap-3 text-center flex-1 pr-2">
+                                            <div className="flex-1"><span className="text-slate-500 text-[10px] block mb-0.5">X</span>{px === Infinity || px === -Infinity ? '∞' : px.toFixed(2)}</div>
+                                            <div className="flex-1"><span className="text-slate-500 text-[10px] block mb-0.5">Y</span>{py === Infinity || py === -Infinity ? '∞' : py.toFixed(2)}</div>
+                                            <div className="flex-1"><span className="text-slate-500 text-[10px] block mb-0.5">Z</span>{pz === Infinity || pz === -Infinity ? '∞' : pz.toFixed(2)}</div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
