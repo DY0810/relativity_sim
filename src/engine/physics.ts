@@ -170,22 +170,34 @@ export const transformWorldlineCoordinates = (
     X_origin: NumericVector4 = [0, 0, 0, 0],
     tau: number = 0
 ): { t: number[], x: number[], y: number[], z: number[] } => {
-    const transformed = { t: [] as number[], x: [] as number[], y: [] as number[], z: [] as number[] };
-
     const len = coords.t.length;
+    const rt = new Array(len);
+    const rx = new Array(len);
+    const ry = new Array(len);
+    const rz = new Array(len);
+
+    // Pre-extract all 16 matrix elements to avoid repeated property lookups
+    const L00 = Lambda[0][0], L01 = Lambda[0][1], L02 = Lambda[0][2], L03 = Lambda[0][3];
+    const L10 = Lambda[1][0], L11 = Lambda[1][1], L12 = Lambda[1][2], L13 = Lambda[1][3];
+    const L20 = Lambda[2][0], L21 = Lambda[2][1], L22 = Lambda[2][2], L23 = Lambda[2][3];
+    const L30 = Lambda[3][0], L31 = Lambda[3][1], L32 = Lambda[3][2], L33 = Lambda[3][3];
+
+    // Pre-extract origin components
+    const o0 = X_origin[0], o1 = X_origin[1], o2 = X_origin[2], o3 = X_origin[3];
+
     for (let i = 0; i < len; i++) {
-        const V: NumericVector4 = [
-            coords.t[i] - X_origin[0],
-            coords.x[i] - X_origin[1],
-            coords.y[i] - X_origin[2],
-            coords.z[i] - X_origin[3]
-        ];
-        const V_prime = applyLorentzTransformation(Lambda, V);
-        transformed.t.push(V_prime[0] + tau);
-        transformed.x.push(V_prime[1]);
-        transformed.y.push(V_prime[2]);
-        transformed.z.push(V_prime[3]);
+        // Translate to origin
+        const dt = coords.t[i] - o0;
+        const dx = coords.x[i] - o1;
+        const dy = coords.y[i] - o2;
+        const dz = coords.z[i] - o3;
+
+        // Inline 4x4 matrix-vector multiply (no function call overhead)
+        rt[i] = (L00 * dt + L01 * dx + L02 * dy + L03 * dz) + tau;
+        rx[i] = L10 * dt + L11 * dx + L12 * dy + L13 * dz;
+        ry[i] = L20 * dt + L21 * dx + L22 * dy + L23 * dz;
+        rz[i] = L30 * dt + L31 * dx + L32 * dy + L33 * dz;
     }
 
-    return transformed;
+    return { t: rt, x: rx, y: ry, z: rz };
 };

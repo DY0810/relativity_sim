@@ -12,9 +12,8 @@ export const getCompiledExpression = (expr: string) => {
     if (!expr || expr.trim() === '') return { evaluate: () => 0 };
     if (!expressionCache.has(expr)) {
         try {
-            // Simplify with nerdamer first to standardize mathematical syntax
-            const standardized = nerdamer(substituteConstants(expr)).text();
-            expressionCache.set(expr, compile(standardized));
+            // Only substitute constants (lightweight string replace), then compile directly with mathjs
+            expressionCache.set(expr, compile(substituteConstants(expr)));
         } catch (e) {
             console.warn("Failed to compile expression:", expr, e);
             expressionCache.set(expr, { evaluate: () => 0 });
@@ -177,29 +176,31 @@ export const evaluateVectorAtTau = (V: Vector4, tau: number): NumericVector4 => 
     }
 };
 
-export const findTauForLabTime = (positionExpr: Vector4, target_t: number): number => {
-    let low = -10000;
-    let high = 10000;
+export const findTauForLabTime = (positionExpr: Vector4, target_t: number, searchRange: number = 200): number => {
+    let low = -searchRange;
+    let high = searchRange;
+
+    // Pre-compile the time component once for the entire search
+    const compT = getCompiledExpression(positionExpr[0]);
 
     // First check boundaries to ensure we're searching the right domain
-    const t_low = evaluateVectorAtTau(positionExpr, low)[0];
-    const t_high = evaluateVectorAtTau(positionExpr, high)[0];
+    const t_low = Number(compT.evaluate({ tau: low }));
+    const t_high = Number(compT.evaluate({ tau: high }));
 
     if (!Number.isNaN(t_low) && !Number.isNaN(t_high)) {
-        if (target_t < t_low) return low; // Clamped to lower bound
-        if (target_t > t_high) return high; // Clamped to upper bound
+        if (target_t < t_low) return low;
+        if (target_t > t_high) return high;
     }
 
     let closest_tau = 0;
     let min_diff = Infinity;
 
     // Binary search since t(tau) is strictly monotonically increasing (dt/dtau = gamma >= 1)
-    for (let iter = 0; iter < 100; iter++) {
+    for (let iter = 0; iter < 50; iter++) {
         const mid = (low + high) / 2;
-        const t_mid = evaluateVectorAtTau(positionExpr, mid)[0];
+        const t_mid = Number(compT.evaluate({ tau: mid }));
 
         if (Number.isNaN(t_mid)) {
-            // If we hit NaN (e.g. math domain error), shrink the search space towards 0
             if (Math.abs(low) > Math.abs(high)) low = mid;
             else high = mid;
             continue;
@@ -217,25 +218,34 @@ export const findTauForLabTime = (positionExpr: Vector4, target_t: number): numb
         else high = mid;
     }
 
-    // Return the closest tau we found if we didn't perfectly converge within 100 iters
     return closest_tau;
 };
 
 /**
  * Sweeps over a range of tau to aggressively check if the particle 
  * violates causality (Faster-Than-Light limit |v| > c).
+ * Results are memoized on the velocity expression key.
  */
+const causalityCache = new Map<string, boolean>();
+
 export const checkCausalityViolation = (velocityExpr: Vector4): boolean => {
+    const key = velocityExpr.join('|');
+    if (causalityCache.has(key)) return causalityCache.get(key)!;
+
+    let result = false;
     for (let tau = -50; tau <= 50; tau += 1) {
         const U = evaluateVectorAtTau(velocityExpr, tau);
         if (Math.abs(U[0]) < 1e-6) {
-            // zero time component but non-zero spatial is infinite velocity (FTL)
-            if (Math.abs(U[1]) > 1e-6 || Math.abs(U[2]) > 1e-6 || Math.abs(U[3]) > 1e-6) return true;
+            if (Math.abs(U[1]) > 1e-6 || Math.abs(U[2]) > 1e-6 || Math.abs(U[3]) > 1e-6) { result = true; break; }
             continue;
         }
         const v2 = (U[1] * U[1] + U[2] * U[2] + U[3] * U[3]) / (U[0] * U[0]);
-        // Fast test allowance for precision boundary conditions
-        if (v2 > 1.05 || isNaN(v2)) return true;
+        if (v2 > 1.05 || isNaN(v2)) { result = true; break; }
     }
-    return false;
+
+    causalityCache.set(key, result);
+    return result;
 };
+
+/** Clear the causality cache (call when expressions change) */
+export const clearCausalityCache = () => causalityCache.clear();

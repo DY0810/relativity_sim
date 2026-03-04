@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ParticleState, Vector4, NumericVector4 } from '../engine/cas';
-import { solveFromPosition, solveFromVelocity, solveFromAcceleration, evaluateVectorAtTau, findTauForLabTime } from '../engine/cas';
+import { solveFromPosition, solveFromVelocity, solveFromAcceleration, evaluateVectorAtTau, findTauForLabTime, clearCausalityCache } from '../engine/cas';
 import { extract3Velocity } from '../engine/physics';
 import { PARADOX_PRESETS } from '../constants/ParadoxPresets';
 
@@ -95,45 +95,48 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
         particles: state.particles.map(p => p.id === id ? { ...p, mass } : p)
     })),
 
-    updateParticleInput: (id, inputType, input) => set((state) => ({
-        particles: state.particles.map(p => {
-            if (p.id !== id) return p;
-            let X: Vector4 = [...p.positionExpr];
-            let U: Vector4 = [...p.velocityExpr];
-            let A: Vector4 = [...p.accelerationExpr];
+    updateParticleInput: (id, inputType, input) => set((state) => {
+        clearCausalityCache();  // Invalidate memoized causality results
+        return {
+            particles: state.particles.map(p => {
+                if (p.id !== id) return p;
+                let X: Vector4 = [...p.positionExpr];
+                let U: Vector4 = [...p.velocityExpr];
+                let A: Vector4 = [...p.accelerationExpr];
 
-            const newP = { ...p };
+                const newP = { ...p };
 
-            try {
-                if (inputType === 'position') {
-                    newP.inputPosition = input;
-                    delete newP.inputVelocity; delete newP.inputAcceleration;
-                    const sol = solveFromPosition(input);
-                    X = sol.X; U = sol.U; A = sol.A;
-                } else if (inputType === 'velocity') {
-                    newP.inputVelocity = input;
-                    delete newP.inputPosition; delete newP.inputAcceleration;
-                    const sol = solveFromVelocity(input, p.initialPosition);
-                    X = sol.X; U = sol.U; A = sol.A;
-                } else if (inputType === 'acceleration') {
-                    newP.inputAcceleration = input;
-                    delete newP.inputPosition; delete newP.inputVelocity;
-                    const sol = solveFromAcceleration(input, p.initialVelocity, p.initialPosition);
-                    X = sol.X; U = sol.U; A = sol.A;
+                try {
+                    if (inputType === 'position') {
+                        newP.inputPosition = input;
+                        delete newP.inputVelocity; delete newP.inputAcceleration;
+                        const sol = solveFromPosition(input);
+                        X = sol.X; U = sol.U; A = sol.A;
+                    } else if (inputType === 'velocity') {
+                        newP.inputVelocity = input;
+                        delete newP.inputPosition; delete newP.inputAcceleration;
+                        const sol = solveFromVelocity(input, p.initialPosition);
+                        X = sol.X; U = sol.U; A = sol.A;
+                    } else if (inputType === 'acceleration') {
+                        newP.inputAcceleration = input;
+                        delete newP.inputPosition; delete newP.inputVelocity;
+                        const sol = solveFromAcceleration(input, p.initialVelocity, p.initialPosition);
+                        X = sol.X; U = sol.U; A = sol.A;
+                    }
+                } catch (e) {
+                    console.warn("Failed to update particle math", e);
+                    // Fallback to previous math state if derivation fails due to invalid syntax
                 }
-            } catch (e) {
-                console.warn("Failed to update particle math", e);
-                // Fallback to previous math state if derivation fails due to invalid syntax
-            }
 
-            return {
-                ...newP,
-                positionExpr: X,
-                velocityExpr: U,
-                accelerationExpr: A
-            };
-        })
-    })),
+                return {
+                    ...newP,
+                    positionExpr: X,
+                    velocityExpr: U,
+                    accelerationExpr: A
+                };
+            })
+        };
+    }),
 
     updateParticleInitialConditions: (id, X0, U0) => set((state) => {
         return {
@@ -171,6 +174,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     }),
 
     loadPreset: (presetId) => set((state) => {
+        clearCausalityCache();  // Invalidate memoized causality results
         const preset = PARADOX_PRESETS.find(p => p.id === presetId);
         if (!preset) return state;
 
