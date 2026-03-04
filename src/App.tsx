@@ -5,6 +5,7 @@ import { TimeSlider } from './components/TimeSlider';
 import { DimensionTabs } from './components/DimensionTabs';
 import { useSimulatorStore } from './store/useSimulatorStore';
 import Hyperspeed from './components/Backgrounds/Hyperspeed';
+import ShinyText from './components/ReactBits/ShinyText';
 
 function App() {
   const viewMode = useSimulatorStore(s => s.viewMode);
@@ -58,7 +59,7 @@ function App() {
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-cyan-neon animate-pulse-slow shadow-neon-cyan"></div>
           <h1 className="text-sm font-semibold tracking-widest uppercase text-slate-200">
-            Relativity <span className="text-slate-500 font-light">| Kinematic Simulator</span>
+            Relativity <span className="text-slate-500 font-light">| <ShinyText text="Kinematic Simulator" disabled={false} speed={3} className="inline-block" /></span>
           </h1>
         </div>
       </header>

@@ -6,6 +6,8 @@ import type { Vector4, NumericVector4 } from '../engine/cas';
 import { checkCausalityViolation } from '../engine/cas';
 import { evaluate as mathEval } from 'mathjs';
 import { PARADOX_PRESETS } from '../constants/ParadoxPresets';
+import SpotlightCard from './ReactBits/SpotlightCard';
+import StarBorder from './ReactBits/StarBorder';
 
 const parseNumericInput = (val: string): number => {
     try {
@@ -162,14 +164,14 @@ export const ControlPanel: React.FC = () => {
                     const pz = p.mass * gamma * v3[2];
 
                     return (
-                        <div
+                        <SpotlightCard
                             key={p.id}
                             className={`mb-5 backdrop-blur-xl border rounded-2xl p-5 relative transition-all duration-500 group
                                 ${isFTL
                                     ? 'bg-red-950/20 border-red-500/50 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
                                     : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                                 }`}
-                            style={{ boxShadow: !isFTL ? `inset 0 0 40px ${p.color}08` : undefined }}
+                            spotlightColor={isFTL ? 'rgba(244, 63, 94, 0.2)' : `${p.color}20`}
                         >
                             {/* Accent Glow Line */}
                             <div className="absolute top-0 left-4 right-4 h-[1px] opacity-50" style={{ background: `linear-gradient(90deg, transparent, ${p.color}, transparent)` }}></div>
@@ -307,16 +309,21 @@ export const ControlPanel: React.FC = () => {
                                     </div>
                                 </div>
                             )}
-                        </div>
+                        </SpotlightCard>
                     );
                 })}
 
-                <button
+                <StarBorder
+                    as="button"
                     onClick={addParticle}
-                    className="w-full py-4 mt-2 mb-8 rounded-2xl border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all font-bold text-sm tracking-wide shadow-lg group flex items-center justify-center gap-2"
+                    color="#10b981"
+                    speed="4s"
+                    className="w-full mt-2 mb-8"
                 >
-                    <span className="text-xl leading-none text-emerald-neon group-hover:scale-110 transition-transform">+</span> INITIALIZE ENTITY
-                </button>
+                    <div className="flex items-center justify-center gap-2 font-bold text-sm tracking-wide group w-full text-slate-300 hover:text-white transition-colors">
+                        <span className="text-xl leading-none text-emerald-neon group-hover:scale-110 transition-transform">+</span> INITIALIZE ENTITY
+                    </div>
+                </StarBorder>
             </div>
         </div>
     );

@@ -17,6 +17,32 @@
   --drop-shadow-neon-emerald: 0 0 12px rgba(16, 185, 129, 0.6);
 
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-star-movement-bottom: star-movement-bottom 6s linear infinite alternate;
+  --animate-star-movement-top: star-movement-top 6s linear infinite alternate;
+
+  @keyframes star-movement-bottom {
+    0% {
+      transform: translate(0%, 0%);
+      opacity: 1;
+    }
+
+    100% {
+      transform: translate(-100%, 0%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes star-movement-top {
+    0% {
+      transform: translate(0%, 0%);
+      opacity: 1;
+    }
+
+    100% {
+      transform: translate(100%, 0%);
+      opacity: 0;
+    }
+  }
 }
 
 :root {
