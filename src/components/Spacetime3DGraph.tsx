@@ -107,19 +107,16 @@ export const Spacetime3DGraph: React.FC = () => {
         return { MCRF: { Lambda: getLorentzBoostMatrix(v3), X_origin, tau }, playheadTime: tau };
     }, [activeReferenceFrameId, particles, animationTime]);
 
-    // Generate 3D worldline traces
+    // Generate 3D worldline traces (reduced sampling for 3D performance)
     const plotData = useMemo(() => {
         const traces: Plotly.Data[] = [];
 
         particles.forEach(p => {
-            if (checkCausalityViolation(p.velocityExpr)) {
-                return; // Skip FTL
-            }
+            if (checkCausalityViolation(p.velocityExpr)) return;
 
             const t: number[] = [], x: number[] = [], y: number[] = [], z: number[] = [];
-            const dynamicSteps = Math.max(500, tauRange * 10);
+            const dynamicSteps = Math.max(300, tauRange * 5); // Reduced from 500/10x for 3D
             const step = (tauRange * 2) / dynamicSteps;
-            // Pre-compile expressions to avoid massive overhead in the loop
             const compT = getCompiledExpression(p.positionExpr[0]);
             const compX = getCompiledExpression(p.positionExpr[1]);
             const compY = getCompiledExpression(p.positionExpr[2]);
@@ -131,8 +128,6 @@ export const Spacetime3DGraph: React.FC = () => {
                 const vx = Number(compX.evaluate(scope));
                 const vy = Number(compY.evaluate(scope));
                 const vz = Number(compZ.evaluate(scope));
-
-                // If the math blows up at extreme bounds, push 0 or skip
                 if (isNaN(vt) || isNaN(vx) || isNaN(vy) || isNaN(vz)) {
                     t.push(0); x.push(0); y.push(0); z.push(0);
                 } else {
@@ -142,24 +137,17 @@ export const Spacetime3DGraph: React.FC = () => {
 
             const tr = transformWorldlineCoordinates({ t, x, y, z }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
 
-            // Filter valid points
-            const fx: number[] = [], fy: number[] = [], fz: number[] = [], ft: number[] = [];
+            const fx: number[] = [], fy: number[] = [], ft: number[] = [];
             for (let i = 0; i < tr.t.length; i++) {
-                if (isFinite(tr.x[i]) && isFinite(tr.y[i]) && isFinite(tr.z[i]) && isFinite(tr.t[i])) {
-                    if (Math.abs(tr.x[i]) < 20000 && Math.abs(tr.y[i]) < 20000 && Math.abs(tr.z[i]) < 20000 && Math.abs(tr.t[i]) < 20000) {
-                        fx.push(tr.x[i]); fy.push(tr.y[i]); fz.push(tr.z[i]); ft.push(tr.t[i]);
-                    }
+                if (isFinite(tr.x[i]) && isFinite(tr.y[i]) && isFinite(tr.t[i]) &&
+                    Math.abs(tr.x[i]) < 20000 && Math.abs(tr.y[i]) < 20000 && Math.abs(tr.t[i]) < 20000) {
+                    fx.push(tr.x[i]); fy.push(tr.y[i]); ft.push(tr.t[i]);
                 }
             }
 
-            // Worldline as 3D scatter line (x, y, t as vertical axis)
             traces.push({
-                type: 'scatter3d',
-                mode: 'lines',
-                name: p.name,
-                x: fx,
-                y: fy,
-                z: ft, // time is the vertical axis
+                type: 'scatter3d', mode: 'lines', name: p.name,
+                x: fx, y: fy, z: ft,
                 line: { color: p.color, width: 4 },
                 hovertemplate: `${p.name}<br>x': %{x:.3f}<br>y': %{y:.3f}<br>t': %{z:.3f}<extra></extra>`,
             } as Plotly.Data);
@@ -207,171 +195,159 @@ export const Spacetime3DGraph: React.FC = () => {
     }, [particles, animationTime, MCRF]);
 
     // Light cone surface: x² + y² = t² → a cone in (x, y, t) space
+    // Reduced from 40×40 to 20×20 mesh — cone is 8% opacity so detail is invisible
     const lightConeData = useMemo(() => {
-        const N = 40;
+        const N = 20;
         const range = tauRange;
         const xSurf: number[][] = [];
         const ySurf: number[][] = [];
-        const zSurf: number[][] = [];
+        const futureZ: number[][] = [];
+        const pastZ: number[][] = [];
 
-        // Center the light cone on the active reference frame's origin
         const ot = activeReferenceFrameId === 'Lab' ? 0 : playheadTime;
 
         for (let i = 0; i <= N; i++) {
             const th = (2 * Math.PI * i) / N;
-            const xRow: number[] = [], yRow: number[] = [], zRow: number[] = [];
+            const cosT = Math.cos(th), sinT = Math.sin(th);
+            const xRow: number[] = [], yRow: number[] = [], fzRow: number[] = [], pzRow: number[] = [];
             for (let j = 0; j <= N; j++) {
                 const t = (range * j) / N;
-                xRow.push(t * Math.cos(th));
-                yRow.push(t * Math.sin(th));
-                zRow.push(t + ot); // Shift future cone up by ot
+                xRow.push(t * cosT);
+                yRow.push(t * sinT);
+                fzRow.push(t + ot);
+                pzRow.push(ot - t);
             }
-            xSurf.push(xRow); ySurf.push(yRow); zSurf.push(zRow);
+            xSurf.push(xRow); ySurf.push(yRow); futureZ.push(fzRow); pastZ.push(pzRow);
         }
 
-        // Future light cone
-        const futureCone: Plotly.Data = {
-            type: 'surface',
-            x: xSurf,
-            y: ySurf,
-            z: zSurf,
+        const coneProps = {
             opacity: 0.08,
-            colorscale: [[0, '#fbbf24'], [1, '#fbbf24']],
+            colorscale: [[0, '#fbbf24'], [1, '#fbbf24']] as [number, string][],
             showscale: false,
-            hoverinfo: 'skip' as any,
+            hoverinfo: 'skip' as const,
+            hovertemplate: '',
             showlegend: false,
-        } as any;
+        };
 
-        // Past light cone
-        // For past cone, time goes backwards from ot, so z = ot - t
-        const pastZSurf: number[][] = [];
-        for (let i = 0; i <= N; i++) {
-            const zRow: number[] = [];
-            for (let j = 0; j <= N; j++) {
-                const t = (range * j) / N;
-                zRow.push(ot - t);
-            }
-            pastZSurf.push(zRow);
-        }
-
-        const pastCone: Plotly.Data = {
-            type: 'surface',
-            x: xSurf,
-            y: ySurf,
-            z: pastZSurf,
-            opacity: 0.08,
-            colorscale: [[0, '#fbbf24'], [1, '#fbbf24']],
-            showscale: false,
-            hoverinfo: 'skip' as any,
-            showlegend: false,
-        } as any;
-
-        return [futureCone, pastCone];
-    }, [activeReferenceFrameId, playheadTime]);
+        return [
+            { type: 'surface', x: xSurf, y: ySurf, z: futureZ, ...coneProps } as any,
+            { type: 'surface', x: xSurf, y: ySurf, z: pastZ, ...coneProps } as any,
+        ];
+    }, [activeReferenceFrameId, playheadTime, tauRange]);
 
     // Dimension mapping for 2D is not needed here, we do true 3D
+    // OPTIMIZED: All grid lines merged into 3 traces using NaN separators (~150 draw calls → 3)
     const gridData = useMemo(() => {
-        const traces: Plotly.Data[] = [];
-        const limit = tauRange * 3;
-        const RANGE = limit;
+        const RANGE = tauRange * 2;  // Reduced from 3x to 2x — less geometry off-screen
         const STEP = Math.max(2, Math.floor(tauRange / 5));
 
-        // 1. Grid of constant T planes (just t=0, and maybe t=±limit/2)
-        const tStep = limit / 2;
-        for (let t_plane of [-tStep, 0, tStep]) {
-            // Lines parallel to X (varying x, fixed y)
+        // Shared arrays for merged traces (NaN = line break within a single trace)
+        const mainX: number[] = [], mainY: number[] = [], mainZ: number[] = [];  // t=0 plane (thicker)
+        const subX: number[] = [], subY: number[] = [], subZ: number[] = [];     // t=±half planes + verticals  
+        const hyperX: number[] = [], hyperY: number[] = [], hyperZ: number[] = []; // Hyperbolic curves
+
+        // Helper: append a line segment to shared arrays with NaN separator
+        const appendLine = (ax: number[], ay: number[], az: number[], tr: { x: number[], y: number[], t: number[] }) => {
+            for (let i = 0; i < tr.x.length; i++) { ax.push(tr.x[i]); ay.push(tr.y[i]); az.push(tr.t[i]); }
+            ax.push(NaN); ay.push(NaN); az.push(NaN);
+        };
+
+        // 1. Grid of constant T planes
+        const tStep = RANGE / 2;
+        for (const t_plane of [-tStep, 0, tStep]) {
+            const target = t_plane === 0 ? [mainX, mainY, mainZ] : [subX, subY, subZ];
+            // Lines parallel to X
             for (let y = -RANGE; y <= RANGE; y += STEP) {
-                const t_lab = [t_plane, t_plane];
-                const x_lab = [-RANGE, RANGE];
-                const y_lab = [y, y];
-                const z_lab = [0, 0];
-
-                const tr = transformWorldlineCoordinates({ t: t_lab, x: x_lab, y: y_lab, z: z_lab }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
-                traces.push({
-                    type: 'scatter3d', mode: 'lines',
-                    x: tr.x, y: tr.y, z: tr.t,
-                    line: { color: t_plane === 0 ? '#475569' : '#334155', width: t_plane === 0 ? 3 : 1 },
-                    hoverinfo: 'skip', showlegend: false
-                } as any);
+                const tr = transformWorldlineCoordinates(
+                    { t: [t_plane, t_plane], x: [-RANGE, RANGE], y: [y, y], z: [0, 0] },
+                    MCRF.Lambda, MCRF.X_origin, MCRF.tau
+                );
+                appendLine(target[0], target[1], target[2], tr);
             }
-            // Lines parallel to Y (varying y, fixed x)
+            // Lines parallel to Y
             for (let x = -RANGE; x <= RANGE; x += STEP) {
-                const t_lab = [t_plane, t_plane];
-                const x_lab = [x, x];
-                const y_lab = [-RANGE, RANGE];
-                const z_lab = [0, 0];
-
-                const tr = transformWorldlineCoordinates({ t: t_lab, x: x_lab, y: y_lab, z: z_lab }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
-                traces.push({
-                    type: 'scatter3d', mode: 'lines',
-                    x: tr.x, y: tr.y, z: tr.t,
-                    line: { color: t_plane === 0 ? '#475569' : '#334155', width: t_plane === 0 ? 3 : 1 },
-                    hoverinfo: 'skip', showlegend: false
-                } as any);
+                const tr = transformWorldlineCoordinates(
+                    { t: [t_plane, t_plane], x: [x, x], y: [-RANGE, RANGE], z: [0, 0] },
+                    MCRF.Lambda, MCRF.X_origin, MCRF.tau
+                );
+                appendLine(target[0], target[1], target[2], tr);
             }
         }
 
-        // 2. Vertical lines (constant X, constant Y, varying T)
+        // 2. Vertical lines (constant X, constant Y, varying T) — sparser
         for (let x = -RANGE; x <= RANGE; x += STEP * 2) {
             for (let y = -RANGE; y <= RANGE; y += STEP * 2) {
-                const t_lab = [-RANGE, RANGE];
-                const x_lab = [x, x];
-                const y_lab = [y, y];
-                const z_lab = [0, 0];
-
-                const tr = transformWorldlineCoordinates({ t: t_lab, x: x_lab, y: y_lab, z: z_lab }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
-                traces.push({
-                    type: 'scatter3d', mode: 'lines',
-                    x: tr.x, y: tr.y, z: tr.t,
-                    line: { color: '#334155', width: 1 },
-                    hoverinfo: 'skip', showlegend: false
-                } as any);
+                const tr = transformWorldlineCoordinates(
+                    { t: [-RANGE, RANGE], x: [x, x], y: [y, y], z: [0, 0] },
+                    MCRF.Lambda, MCRF.X_origin, MCRF.tau
+                );
+                appendLine(subX, subY, subZ, tr);
             }
         }
 
-        // 3. Hyperbolic invariant intervals (on x-t and y-t planes)
+        // 3. Hyperbolic invariant intervals (merged into single trace)
         const limit_hyper = tauRange * 2;
         for (let c = STEP; c <= limit_hyper; c += STEP) {
-            const vals = [];
+            const vals: number[] = [];
             for (let v = -limit_hyper; v <= limit_hyper; v += STEP / 4) vals.push(v);
 
-            const h_x1 = [], h_t1 = [], h_x2 = [], h_t2 = []; // Time-like
-            const h_x3 = [], h_t3 = [], h_x4 = [], h_t4 = []; // Space-like
+            const h_x1: number[] = [], h_t1: number[] = [], h_x2: number[] = [], h_t2: number[] = [];
+            const h_x3: number[] = [], h_t3: number[] = [], h_x4: number[] = [], h_t4: number[] = [];
 
             for (const val of vals) {
-                const t_val = Math.sqrt(c * c + val * val);
-                if (t_val <= limit_hyper) {
-                    h_x1.push(val); h_t1.push(t_val);
-                    h_x2.push(val); h_t2.push(-t_val);
-                }
-                const x_val = Math.sqrt(c * c + val * val);
-                if (x_val <= limit_hyper) {
-                    h_t3.push(val); h_x3.push(x_val);
-                    h_t4.push(val); h_x4.push(-x_val);
+                const mag = Math.sqrt(c * c + val * val);
+                if (mag <= limit_hyper) {
+                    h_x1.push(val); h_t1.push(mag);
+                    h_x2.push(val); h_t2.push(-mag);
+                    h_t3.push(val); h_x3.push(mag);
+                    h_t4.push(val); h_x4.push(-mag);
                 }
             }
 
-            // Apply to X axis (y=0)
-            [{ x: h_x1, t: h_t1 }, { x: h_x2, t: h_t2 }, { x: h_x3, t: h_t3 }, { x: h_x4, t: h_t4 }].forEach(curve => {
-                const tr = transformWorldlineCoordinates({ t: curve.t, x: curve.x, y: curve.x.map(() => 0), z: curve.x.map(() => 0) }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
-                traces.push({
-                    type: 'scatter3d', mode: 'lines',
-                    x: tr.x, y: tr.y, z: tr.t,
-                    line: { color: '#0f766e', width: 2, dash: 'dot' },
-                    hoverinfo: 'skip', showlegend: false
-                } as any);
-            });
+            // X-axis curves (y=0)
+            const zeros = (n: number) => new Array(n).fill(0);
+            for (const curve of [{ x: h_x1, t: h_t1 }, { x: h_x2, t: h_t2 }, { x: h_x3, t: h_t3 }, { x: h_x4, t: h_t4 }]) {
+                const tr = transformWorldlineCoordinates(
+                    { t: curve.t, x: curve.x, y: zeros(curve.x.length), z: zeros(curve.x.length) },
+                    MCRF.Lambda, MCRF.X_origin, MCRF.tau
+                );
+                appendLine(hyperX, hyperY, hyperZ, tr);
+            }
+            // Y-axis curves (x=0)
+            for (const curve of [{ y: h_x1, t: h_t1 }, { y: h_x2, t: h_t2 }, { y: h_x3, t: h_t3 }, { y: h_x4, t: h_t4 }]) {
+                const tr = transformWorldlineCoordinates(
+                    { t: curve.t, x: zeros(curve.y.length), y: curve.y, z: zeros(curve.y.length) },
+                    MCRF.Lambda, MCRF.X_origin, MCRF.tau
+                );
+                appendLine(hyperX, hyperY, hyperZ, tr);
+            }
+        }
 
-            // Apply to Y axis (x=0)
-            [{ y: h_x1, t: h_t1 }, { y: h_x2, t: h_t2 }, { y: h_x3, t: h_t3 }, { y: h_x4, t: h_t4 }].forEach(curve => {
-                const tr = transformWorldlineCoordinates({ t: curve.t, x: curve.y.map(() => 0), y: curve.y, z: curve.y.map(() => 0) }, MCRF.Lambda, MCRF.X_origin, MCRF.tau);
-                traces.push({
-                    type: 'scatter3d', mode: 'lines',
-                    x: tr.x, y: tr.y, z: tr.t,
-                    line: { color: '#0f766e', width: 2, dash: 'dot' },
-                    hoverinfo: 'skip', showlegend: false
-                } as any);
-            });
+        // Return only 3 traces instead of ~150
+        const traces: Plotly.Data[] = [];
+        if (mainX.length > 0) {
+            traces.push({
+                type: 'scatter3d', mode: 'lines',
+                x: mainX, y: mainY, z: mainZ,
+                line: { color: '#475569', width: 3 },
+                hoverinfo: 'skip', hovertemplate: '', showlegend: false, connectgaps: false,
+            } as any);
+        }
+        if (subX.length > 0) {
+            traces.push({
+                type: 'scatter3d', mode: 'lines',
+                x: subX, y: subY, z: subZ,
+                line: { color: '#334155', width: 1 },
+                hoverinfo: 'skip', hovertemplate: '', showlegend: false, connectgaps: false,
+            } as any);
+        }
+        if (hyperX.length > 0) {
+            traces.push({
+                type: 'scatter3d', mode: 'lines',
+                x: hyperX, y: hyperY, z: hyperZ,
+                line: { color: '#0f766e', width: 2, dash: 'dot' },
+                hoverinfo: 'skip', hovertemplate: '', showlegend: false, connectgaps: false,
+            } as any);
         }
 
         return traces;
